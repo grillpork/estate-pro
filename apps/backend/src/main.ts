@@ -1,12 +1,8 @@
-import "dotenv/config";
-// import gateway from "./gateway";
-import { env } from "./config/env";
+import { Hono } from "hono";
 
-export default {
-  port: env.PORT,
-  fetch: async (request: Request, server: any) => {
-    // Handle regular HTTP requests
-    // return gateway.fetch(request, server);
-  },
+const app = new Hono();
 
-};
+app.get("/", (c) => c.text("Hello World"));
+
+export default app;
+
