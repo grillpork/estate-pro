@@ -1,11 +1,10 @@
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
-import { user } from "./auth";
-import { title } from "node:process";
+
 
 export const properties = pgTable("properties", {
     id: text("id").primaryKey(),
     title: text("title").notNull(),
-    description: text("description").notNull(),
+    description: text("description"),
     floor : text("floor").notNull(),
     price: integer("price").notNull(),
     address: text("address").notNull(),
