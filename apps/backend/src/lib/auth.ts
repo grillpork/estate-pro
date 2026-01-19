@@ -13,19 +13,25 @@ export const auth = betterAuth({
       verification: schema.verification,
     },
   }),
-  allowUntrustedOrigins: true,
-  secret: "hCf1n4l96S1CnidZkDx6d2XgOQAcfW9G",
 
-  baseURL: "http://localhost:4000",
-  basePath: "/api/auth",
+  secret: process.env.BETTER_AUTH_SECRET || "hCf1n4l96S1CnidZkDx6d2XgOQAcfW9G",
 
   trustedOrigins: [
     "http://localhost:3000", // frontend
-    "http://localhost:4000", // backend
+    "http://localhost:3001", // backend (if different)
   ],
+
+  baseURL: "http://localhost:3000",
+  basePath: "/api/auth",
 
   emailAndPassword: {
     enabled: true,
+  },
+
+  // Advanced config for development/testing
+  advanced: {
+    // Disable origin check for API testing tools like Postman
+    disableCSRFCheck: process.env.NODE_ENV === "development",
   },
 });
 
