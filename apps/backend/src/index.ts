@@ -1,11 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "./lib/auth";
-import { db } from "./db";
-import { user, properties } from "./db/schemas";
-import { eq, ilike, or } from "drizzle-orm";
-import { nanoid } from "nanoid";
 import { userRoutes } from "./modules/users/users.routes";
+import { propertiesRoutes } from "./modules/properties/properties.routes";
 
 const app = new Hono();
 
@@ -27,6 +24,7 @@ app.all("/api/auth/*", (c) => {
 
 
 app.route('/users', userRoutes);
+app.route('/properties', propertiesRoutes);
 
 
 export default app;
