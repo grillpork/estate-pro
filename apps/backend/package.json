@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bun run --hot src/index.ts",
+    "dev": "bun run --hot src/index.ts --port 4000",
     "start": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "db:generate": "drizzle-kit generate",
@@ -12,7 +12,7 @@
     "type-check": "bun tsc --noEmit 2>&1 | head -50"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.948.0",
+    "@aws-sdk/client-s3": "^3.972.0",
     "@hono/zod-validator": "^0.7.5",
     "@neondatabase/serverless": "^1.0.2",
     "@orpc/contract": "^1.13.1",
