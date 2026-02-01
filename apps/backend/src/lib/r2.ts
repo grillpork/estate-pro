@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client  } from "@aws-sdk/client-s3";
 
 export const r2 = new S3Client({
   region: "auto",
@@ -49,4 +49,23 @@ export const getR2PublicUrl = (key: string) => {
   // fallback: ใช้โดเมนมาตรฐานของ bucket
   return joinUrl(`https://${BUCKET_NAME}.r2.cloudflarestorage.com`, key);
 };
+
+export const countFiles = async (BucketName: string) => {
+  const command = new ListObjectsV2Command({
+    Bucket: BucketName
+  })
+    const result = await r2.send(command)
+
+    const files = result.Contents?.map((f) => f.Key) || []
+    const fileCount = files.length;
+
+    console.log(`Found ${fileCount} files in bucket ${BucketName}`);
+    return {count : fileCount, files };
+  
+}
+
+console.log(await countFiles("estate-test"))
+
+const port = 4000;
+console.log(`Server is running on http://localhost:${port}`);
 
