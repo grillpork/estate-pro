@@ -6,6 +6,7 @@ type Property = {
   price: number;
   address: string;
   image: string | null;
+  nearby_area: string | null;
 };
 
 async function getProperties(): Promise<Property[]> {

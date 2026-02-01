@@ -9,6 +9,7 @@ export const properties = pgTable("properties", {
     price: integer("price").notNull(),
     address: text("address").notNull(),
     image: text("image"),
+    nearby_area: text("nearby_area"),
     // userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
     
 

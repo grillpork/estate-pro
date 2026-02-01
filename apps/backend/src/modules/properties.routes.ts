@@ -7,8 +7,8 @@ import { deleteFromR2, getR2PublicUrl, uploadToR2 } from "@/lib/r2";
 const propertiesRoutes = new Hono();
 
 propertiesRoutes.get("/properties", async (c) => {
-    const property = await db.select().from(properties)
-    return c.json(property);
+        const property = await db.select().from(properties)
+        return c.json(property);
 });
 
 propertiesRoutes.get("/properties/:id", async (c) => {
@@ -27,6 +27,7 @@ propertiesRoutes.post("/properties", async (c) => {
     floor: string;
     price: number;
     address: string;
+    nearby_area: string;
   }>();
 
   const price = Number(body.price);
@@ -44,6 +45,7 @@ propertiesRoutes.post("/properties", async (c) => {
       floor: body.floor,
       price: price,
       address: body.address,
+      nearby_area: body.nearby_area || null,
     })
     .returning();
 
@@ -84,6 +86,7 @@ propertiesRoutes.put("/properties/:id", async (c) => {
     floor: string;
     price: number;
     address: string;
+    nearby_area: string;
   }>();
 
   if (!body.title || !body.floor || !body.price || !body.address) {
@@ -103,6 +106,7 @@ propertiesRoutes.put("/properties/:id", async (c) => {
       floor: body.floor,
       price: price,
       address: body.address,
+      nearby_area: body.nearby_area || null,
     })
     .where(eq(properties.id, id))
     .returning();
