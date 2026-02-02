@@ -8,6 +8,7 @@ export const properties = pgTable("properties", {
     floor : text("floor").notNull(),
     price: integer("price").notNull(),
     address: text("address").notNull(),
+    image: text("image"),
     // userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
     
 
