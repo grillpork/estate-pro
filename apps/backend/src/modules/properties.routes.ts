@@ -3,12 +3,19 @@ import { db } from "@/db";
 import { properties } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 import { deleteFromR2, getR2PublicUrl, uploadToR2 } from "@/lib/r2";
+import { getProperties } from "./properties.controller";
 
 const propertiesRoutes = new Hono();
 
+
+//เรีียกใช้ controller
+propertiesRoutes.get("/properties", getProperties);
+
+
+
 propertiesRoutes.get("/properties", async (c) => {
-        const property = await db.select().from(properties)
-        return c.json(property);
+  const property = await db.select().from(properties);
+  return c.json(property);
 });
 
 propertiesRoutes.get("/properties/:id", async (c) => {
@@ -31,7 +38,7 @@ propertiesRoutes.post("/properties", async (c) => {
   }>();
 
   const price = Number(body.price);
-  const id = crypto.randomUUID(); 
+  const id = crypto.randomUUID();
   if (isNaN(price)) {
     return c.json({ error: "Invalid price" }, 400);
   }
@@ -68,7 +75,9 @@ propertiesRoutes.delete("/properties/:id", async (c) => {
   if (deleteProperty.image) {
     try {
       const url = new URL(deleteProperty.image);
-      const key = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
+      const key = url.pathname.startsWith("/")
+        ? url.pathname.slice(1)
+        : url.pathname;
       await deleteFromR2(key);
     } catch (error) {
       console.error("Failed to delete image from R2:", error);
@@ -115,10 +124,10 @@ propertiesRoutes.put("/properties/:id", async (c) => {
 });
 
 propertiesRoutes.put("/properties/:id/upload-image", async (c) => {
-  const id = c.req.param("id"); 
+  const id = c.req.param("id");
 
   const body = await c.req.parseBody();
-  
+
   const file = body["image"] ?? body["file"];
 
   if (!file || !(file instanceof File)) {
@@ -127,7 +136,7 @@ propertiesRoutes.put("/properties/:id/upload-image", async (c) => {
         error:
           'กรุณาส่งไฟล์แบบ multipart/form-data โดยใช้ field "image" หรือ "file"',
       },
-      400
+      400,
     );
   }
 
@@ -182,4 +191,3 @@ propertiesRoutes.put("/properties/:id/upload-image", async (c) => {
 });
 
 export { propertiesRoutes };
-
