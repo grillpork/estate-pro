@@ -1,3 +1,5 @@
+import UserInfo from "@/components/user-info";
+
 type Property = {
   id: string;
   title: string;
@@ -26,6 +28,10 @@ export default async function HomePage() {
   return (
     
       <div>
+        
+        <UserInfo/>
+
+
         {properties.map((p) => (
           <div key={p.id}>
             <div>

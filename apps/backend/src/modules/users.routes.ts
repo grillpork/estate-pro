@@ -3,7 +3,6 @@ import { user } from "@/db/schemas";
 import { Hono } from "hono";
 import { eq, like, or } from "drizzle-orm";
 import { uploadToR2, getR2PublicUrl, deleteFromR2 } from "@/lib/r2";
-import { get } from "node:http";
 
 
 const userRoutes = new Hono();
