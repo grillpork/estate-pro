@@ -1,55 +1,34 @@
-import { Hono } from "hono";
 import { db } from "@/db";
-import { properties } from "@/db/schemas";
-import { eq } from "drizzle-orm";
+import { notifications, properties } from "@/db/schemas";
+import { Context } from "hono";
+import { eq, like } from "drizzle-orm";
 import { deleteFromR2, getR2PublicUrl, uploadToR2 } from "@/lib/r2";
-import { getProperties } from "./properties.controller";
+import { propertiesRoutes } from "../properties.routes";
 
-const propertiesRoutes = new Hono();
+export const searchProperties = async (c: Context) => {
+  const query = c.req.query("query");
+  const result = await db
+    .select()
+    .from(properties)
+    .where(like(properties.title, `%${query}%`));
+  return c.json(result);
+};
 
-//เรีียกใช้ controller
-propertiesRoutes.get("/properties", getProperties);
+export const getAllProperties = async (c: Context) => {
+  const result = await db.select().from(properties);
+  return c.json(result);
+};
 
-propertiesRoutes.get("/properties/:id", async (c) => {
+export const getPropertyById = async (c: Context) => {
   const id = c.req.param("id");
   const [property] = await db
     .select()
     .from(properties)
     .where(eq(properties.id, id));
   return c.json(property);
-});
+};
 
-propertiesRoutes.post("/properties", async (c) => {
-  const body = await c.req.json<{
-    title: string;
-    description?: string;
-    floor: string;
-    price: number;
-    address: string;
-  }>();
-
-  const price = Number(body.price);
-  const id = crypto.randomUUID();
-  if (isNaN(price)) {
-    return c.json({ error: "Invalid price" }, 400);
-  }
-
-  const [newProperty] = await db
-    .insert(properties)
-    .values({
-      id,
-      title: body.title,
-      description: body.description || null,
-      floor: body.floor,
-      price: price,
-      address: body.address,
-    })
-    .returning();
-
-  return c.json(newProperty);
-});
-
-propertiesRoutes.delete("/properties/:id", async (c) => {
+export const deleteProperty = async (c: Context) => {
   const id = c.req.param("id");
   const [deleteProperty] = await db
     .delete(properties)
@@ -75,9 +54,9 @@ propertiesRoutes.delete("/properties/:id", async (c) => {
   }
 
   return c.json({ message: "deleted" }, 200);
-});
+};
 
-propertiesRoutes.put("/properties/:id", async (c) => {
+export const updateProperty = async (c: Context) => {
   const id = c.req.param("id");
   const body = await c.req.json<{
     title: string;
@@ -109,9 +88,9 @@ propertiesRoutes.put("/properties/:id", async (c) => {
     .returning();
 
   return c.json(updateProperty);
-});
+};
 
-propertiesRoutes.put("/properties/:id/upload-image", async (c) => {
+export const updatePropertyImage = async (c: Context) => {
   const id = c.req.param("id");
 
   const body = await c.req.parseBody();
@@ -176,6 +155,40 @@ propertiesRoutes.put("/properties/:id/upload-image", async (c) => {
     console.error(error);
     return c.json({ error: "เกิดข้อผิดพลาดในการอัปโหลดไฟล์" }, 500);
   }
-});
+};
 
-export { propertiesRoutes };
+export const createProperty = async (c: Context) => {
+  const body = await c.req.json<{
+    title: string;
+    description?: string;
+    floor: string;
+    price: number;
+    address: string;
+  }>();
+
+  const price = Number(body.price);
+  const id = crypto.randomUUID();
+  if (isNaN(price)) {
+    return c.json({ error: "Invalid price" }, 400);
+  }
+
+  const [newProperty] = await db
+    .insert(properties)
+    .values({
+      id,
+      title: body.title,
+      description: body.description || null,
+      floor: body.floor,
+      price: price,
+      address: body.address,
+    })
+    .returning();
+
+  // สร้าง notification แจ้ง admin ว่ามีอสังหาใหม่รอตรวจสอบ
+  await db.insert(notifications).values({
+    title: "🏠 อสังหาใหม่รอตรวจสอบ",
+    message: `มีการลงประกาศอสังหาใหม่: "${body.title}" ราคา ${price.toLocaleString()} บาท`,
+  });
+
+  return c.json(newProperty);
+};

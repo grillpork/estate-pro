@@ -1,4 +1,4 @@
-import UserInfo from "@/components/user-info";
+import UserInfo from "@/components/UserBox";
 
 type Property = {
   id: string;
@@ -26,26 +26,24 @@ export default async function HomePage() {
   const properties = await getProperties();
 
   return (
-    
-      <div>
-        
-        <UserInfo/>
+    <div>
+      <UserInfo />
 
-
-        {properties.map((p) => (
-          <div key={p.id}>
-            <div>
-              {p.image ? <img src={p.image} alt={p.title} /> : <div>ไม่มีรูป</div>}
-            </div>
-
-            <div>{p.description ?? "ไม่มีคำอธิบาย"}</div>
-            <div>ราคา: {Intl.NumberFormat("th-TH").format(p.price)} บาท</div>
-            <div>{p.address}</div>
+      {properties.map((p) => (
+        <div key={p.id}>
+          <div>
+            {p.image ? (
+              <img src={p.image} alt={p.title} />
+            ) : (
+              <div>ไม่มีรูป</div>
+            )}
           </div>
-        ))}
-      </div>
-  
+
+          <div>{p.description ?? "ไม่มีคำอธิบาย"}</div>
+          <div>ราคา: {Intl.NumberFormat("th-TH").format(p.price)} บาท</div>
+          <div>{p.address}</div>
+        </div>
+      ))}
+    </div>
   );
 }
-
-

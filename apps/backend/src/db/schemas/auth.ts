@@ -1,11 +1,18 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+
+// roles enum
+export const rolesEnum = pgEnum("roles", ["user", "admin", "superadmin"]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   name: text("name"),
-  image: text("image"),//url r2
+  image: text("image"), //url r2
+
+  // role
+  role: rolesEnum("role").notNull().default("user"),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

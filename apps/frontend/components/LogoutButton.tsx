@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth";
+import { LogOut } from "lucide-react";
 
 const LogoutButton = () => {
   const router = useRouter();
@@ -12,8 +13,8 @@ const LogoutButton = () => {
     router.refresh();
   };
   return (
-    <button className="p-4 bg-red-500 text-white rounded-md" onClick={logout}>
-      ออกจากระบบ
+    <button className="p-2 text-white rounded-md" onClick={logout}>
+      <LogOut size={16} />
     </button>
   );
 };
