@@ -26,6 +26,8 @@ propertiesRoutes.post("/properties", async (c) => {
     floor: string;
     price: number;
     address: string;
+    userId: string;
+    status?: "pending" | "approved" | "rejected";
   }>();
 
   const price = Number(body.price);
@@ -43,6 +45,8 @@ propertiesRoutes.post("/properties", async (c) => {
       floor: body.floor,
       price: price,
       address: body.address,
+      userId: body.userId,
+      status: body.status ?? "pending",
     })
     .returning();
 
