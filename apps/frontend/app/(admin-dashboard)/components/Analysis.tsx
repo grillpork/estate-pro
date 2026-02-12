@@ -79,62 +79,17 @@ const Analysis = () => {
   return (
     <div className="text-white flex-1 flex flex-col">
       <section className="grid grid-cols-3 gap-4">
-        <div className="bg-neutral-800 rounded-xl border border-neutral-500">
-          <div className="p-2">
-            <div className="text-neutral-400 text-sm flex items-center gap-2">
-              <div className="p-2 rounded-md bg-neutral-700 border border-neutral-500">
-                <User2 />
-              </div>
-              จำนวนผู้ใช้ทั้งหมด
-            </div>
+        <div className="bg-white flex items-center gap-2 p-2 rounded-2xl">
+          <div className="p-4 bg-amber-600 rounded-2xl">
+            <User2 size={32} />
           </div>
-          <hr className="border-neutral-500 border-dashed border-t-2" />
-          <p className="text-2xl font-bold p-2">{usersCount}</p>
-          <section className="grid grid-cols-2 w-full gap-12">
-            <div className="flex items-center gap-2">
-              <p className="text-green-500 p-2">{usersCount - 2}%</p>
-              <span className="text-neutral-400 text-sm">
-                {usersCount - 2 > 0 ? (
-                  <span className="flex items-center gap-1">
-                    <TrendingUp size={14} />
-                    เพิ่มขึ้น
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <TrendingDown size={14} />
-                    ลดลง
-                  </span>
-                )}
-                จากเดือนที่แล้ว
-              </span>
-            </div>
-            <ResponsiveContainer width="100%" height={60}>
-              <AreaChart data={data}>
-                <XAxis dataKey="name" hide />
-                <Area
-                  dataKey="pv"
-                  stroke="green"
-                  strokeWidth={2}
-                  dot={false}
-                  type="monotone"
-                  fill="green"
-                  fillOpacity={0.1}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </section>
-        </div>
-        <div className="bg-neutral-800 rounded-xl border border-neutral-500">
-          <div className="p-2">
+          <div>
             <div className="text-neutral-400 text-sm flex items-center gap-2">
-              <div className="p-2 rounded-md bg-neutral-700 border border-neutral-500">
-                <Building2 />
-              </div>
-              จำนวนทรัพย์สินทั้งหมด
+              <p>จำนวนผู้ใช้ทั้งหมด</p>
+              <p className="text-green-500 text-xs">+{usersCount - 2}%</p>
             </div>
+            <p className="text-2xl text-black font-bold">{usersCount}</p>
           </div>
-          <hr className="border-neutral-500 border-dashed border-t-2" />
-          <p className="text-2xl font-bold p-2">{propertiesCount}</p>
         </div>
       </section>
 
@@ -146,7 +101,7 @@ const Analysis = () => {
             height={300}
             className="recharts-wrapper shrink-0"
           >
-            <BarChart
+            <AreaChart
               data={data}
               margin={{
                 top: 20,
@@ -154,32 +109,18 @@ const Analysis = () => {
                 left: 20,
                 bottom: 5,
               }}
-              className="bg-neutral-800 rounded-xl border border-neutral-500"
+              className="bg-white text-black rounded-xl"
             >
-              <defs>
-                <pattern
-                  id="diagonalLines"
-                  patternUnits="userSpaceOnUse"
-                  width={12}
-                  height={12}
-                  patternTransform="rotate(45)"
-                >
-                  <line
-                    x1="0"
-                    y="0"
-                    x2="0"
-                    y2="12"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth={2}
-                  />
-                </pattern>
-              </defs>
-
+              <YAxis
+                stroke="rgba(0,0,0,0)"
+                tick={{ fill: "rgba(0,0,0,1)", fontSize: 10 }}
+                tickFormatter={(value) => `${value}`}
+              />
               <XAxis
                 dataKey="name"
-                stroke="rgba(255,255,255,0)"
+                stroke="rgba(0,0,0,0)"
                 strokeWidth={2}
-                tick={{ fill: "rgba(255,255,255,1)" }}
+                tick={{ fill: "rgba(0,0,0,1)", fontSize: 10 }}
               />
               <Tooltip
                 content={<CustomTooltip />}
@@ -192,23 +133,19 @@ const Analysis = () => {
                   fillOpacity: 0.1,
                 }}
               />
-
-              <Bar
+              <Area
+                type="monotone"
                 dataKey="pv"
-                fill="url(#diagonalLines)"
-                barSize={"100%"}
-                radius={[12, 12, 12, 12]}
-                stroke="rgba(255,255,255,0.5)"
+                stroke="#8884d8"
+                fill="#8884d8"
+                fillOpacity={0.3}
                 strokeWidth={2}
-                activeBar={{ fill: "#a78bfa", stroke: "#a78bfa" }}
-                label={{ position: "top" }}
-                cursor="pointer"
               />
-            </BarChart>
+            </AreaChart>
           </ResponsiveContainer>
 
           {/* Report - ขยายเต็มพื้นที่เหลือ */}
-          <div className="bg-neutral-800 rounded-xl border border-neutral-500 p-4 flex-1">
+          <div className="bg-neutral-800 rounded-xl border p-4 flex-1">
             <div className="flex items-center justify-between">
               <p className="text-neutral-400 text-sm">รายงาน</p>
               <p className="text-neutral-400 text-sm cursor-pointer hover:text-white">
@@ -219,7 +156,7 @@ const Analysis = () => {
         </div>
 
         {/* Right Column - History */}
-        <div className="bg-neutral-800 rounded-xl border border-neutral-500 p-4 h-full">
+        <div className="bg-neutral-800 rounded-xl border p-4 h-full">
           <div className="flex items-center justify-between">
             <p className="text-neutral-400 text-sm">ประวัติการอนุมัติ</p>
             <p className="text-neutral-400 text-sm cursor-pointer hover:text-white">
@@ -235,7 +172,7 @@ const Analysis = () => {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-neutral-800 rounded-xl border border-neutral-500 px-4 py-1">
+      <div className="bg-neutral-800 rounded-xl border px-4 py-1">
         <p className="text-neutral-400 text-sm">
           {payload[0].dataKey === "pv" ? "จำนวนผู้ใช้" : "จำนวนทรัพย์สิน"}
           {label}
@@ -246,7 +183,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           ) : (
             <TrendingDown className="text-red-500" />
           )}
-          <NumberFlow value={payload[0].value} />
+          <NumberFlow value={payload[0].value} className="text-white" />
         </div>
       </div>
     );

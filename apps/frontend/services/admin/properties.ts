@@ -9,12 +9,22 @@ export const adminPropertiesService = {
     return response.data;
   },
   deleteProperty: async (id: string) => {
-    const response = await api.delete(`/admin/properties/${id}`);
-    return response.data;
+    try {
+      const response = await api.delete(`/admin/properties/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting property:", error);
+    }
+    return null;
   },
 
   updateProperty: async (id: string, data: any) => {
     const response = await api.put(`/admin/properties/${id}`, data);
+    return response.data;
+  },
+
+  createProperty: async (data: any) => {
+    const response = await api.post("/admin/properties", data);
     return response.data;
   },
 
@@ -27,6 +37,13 @@ export const adminPropertiesService = {
     const response = await api.get(
       `/admin/properties/search?query=${encodeURIComponent(searchTerm)}`,
     );
+    return response.data;
+  },
+
+  updatePropertyStatus: async (id: string, status: string) => {
+    const response = await api.put(`/admin/properties/${id}/status`, {
+      status,
+    });
     return response.data;
   },
 };

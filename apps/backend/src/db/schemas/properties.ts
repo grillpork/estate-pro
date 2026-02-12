@@ -5,6 +5,7 @@ import { relations } from "drizzle-orm";
 
 
 export const propState = pgEnum("prop_state", ["pending", "approved", "rejected"]);
+export const propType = pgEnum("prop_type", ["rent", "sale"]);
 
 export const properties = pgTable("properties", {
   id: text("id").primaryKey(),
@@ -15,6 +16,9 @@ export const properties = pgTable("properties", {
   address: text("address").notNull(),
   image: text("image"),
   status: propState("status").default("pending").notNull(),
+
+  //ประเภทของอสังหา ขายหรือเช่า
+  type: propType("type").default("rent").notNull(),
 
 // amenities: text("amenities").array(),
   amenities: json("amenities").$type<string[]>().default([]),
@@ -38,8 +42,6 @@ export const propertyRelations = relations(properties, ({one}) => ({
     fields: [properties.userId],
     references: [user.id]
   })
-
-
 }))
 
 

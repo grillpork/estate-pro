@@ -15,6 +15,7 @@ import {
   updatePropertyImage,
   searchProperties,
   createProperty,
+  updatePropertyStatus,
 } from "./admin.poperty.controller";
 import {
   getAllNotifications,
@@ -52,6 +53,8 @@ export const adminRoutes = new Hono()
   .put("/properties/:id/image", updatePropertyImage)
 
   .post("/properties", createProperty)
+
+  .put("/properties/:id/status", updatePropertyStatus)
 
   // Notification routes
   .get("/notifications", getAllNotifications)

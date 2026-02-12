@@ -4,37 +4,56 @@ import { useSession } from "@/lib/auth-client";
 import LogoutButton from "./LogoutButton";
 import { redirect } from "next/navigation";
 
-const UserBox = () => {
+const UserBox = ({
+  variant = "default",
+}: {
+  variant?: "default" | "ghost";
+}) => {
   const { data: session, isPending } = useSession();
 
-  if (isPending) return <div>กำลังโหลด...</div>;
+  if (isPending)
+    return <div className="text-white text-xs p-2">Loading...</div>;
+
   if (!session)
     return (
       <button
-        className="bg-blue-500 cursor-pointer text-white p-2 rounded-xl w-full"
+        className="bg-indigo-600 cursor-pointer text-white p-2 rounded-xl w-full text-xs font-medium hover:bg-indigo-700 transition-colors"
         onClick={() => redirect("/login")}
       >
-        กรุณาเข้าสู่ระบบ
+        Sign in
       </button>
     );
 
+  const containerClass =
+    variant === "ghost"
+      ? "bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10"
+      : "bg-neutral-800 border border-neutral-700";
+
   return (
-    <div className="flex items-center gap-2 text-white p-2 bg-neutral-800 rounded-xl">
-      <div className="flex  gap-2">
+    <div
+      className={`flex items-center justify-between p-2 rounded-xl transition-all duration-200 group ${containerClass}`}
+    >
+      <div className="flex items-center gap-3 overflow-hidden">
         <img
-          className="w-10 h-10 rounded-md"
+          className="w-9 h-9 rounded-lg object-cover bg-neutral-700"
           src={
             session.user.image ||
             "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmn4pWrDE1f07NiO_-ALAPW18mUchf6vj9oA&s"
           }
-          alt={session.user.name || "ไม่พบชื่อ"}
+          alt={session.user.name || "User"}
         />
-        <div className="flex flex-col ">
-          <p>{session.user.name || "ไม่พบชื่อ"}</p>
-          <p className="text-sm text-neutral-400">{session.user.email}</p>
+        <div className="flex flex-col overflow-hidden">
+          <p className="text-sm font-medium text-white truncate group-hover:text-indigo-400 transition-colors">
+            {session.user.name || "User"}
+          </p>
+          <p className="text-[10px] text-neutral-400 truncate">
+            {session.user.email}
+          </p>
         </div>
       </div>
-      <LogoutButton />
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <LogoutButton />
+      </div>
     </div>
   );
 };

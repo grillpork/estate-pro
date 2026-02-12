@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   ChevronRight,
   ChevronLeft,
+  MessageCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -132,7 +133,7 @@ const UserLists = () => {
           id="search"
           placeholder="ค้นหาชื่อหรืออีเมล..."
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 p-3 bg-neutral-700 border border-neutral-600 rounded-xl text-white placeholder-neutral-400 focus:outline-none focus:border-blue-500 transition-colors pl-10"
+          className="flex-1 p-3 bg-neutral-900 border border-neutral-600 rounded-xl shadow-lg shadow-black/20 inset-shadow-lg inset-shadow-black/50  text-white placeholder-neutral-400 focus:outline-none focus:border-blue-500 transition-colors pl-10"
         />
 
         <div className="relative">
@@ -318,7 +319,17 @@ const UserLists = () => {
 
                 {/* Actions */}
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/chat-db?userId=${user.id}`);
+                      }}
+                      title="แชท"
+                    >
+                      <MessageCircle size={16} />
+                    </button>
                     <button
                       className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
                       onClick={() => handleDeleteUser(user.id)}

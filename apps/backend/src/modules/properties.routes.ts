@@ -3,55 +3,26 @@ import { db } from "@/db";
 import { properties } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 import { deleteFromR2, getR2PublicUrl, uploadToR2 } from "@/lib/r2";
-import { getProperties } from "./properties.controller";
+import {
+  createProperty,
+  getProperties,
+  myProperties,
+  updateMyProperty,
+  getPropertyById,
+} from "./properties.controller";
+import { authMiddleware } from "@/middleware/auth.middleware";
 
 const propertiesRoutes = new Hono();
 
 //เรีียกใช้ controller
 propertiesRoutes.get("/properties", getProperties);
 
-propertiesRoutes.get("/properties/:id", async (c) => {
-  const id = c.req.param("id");
-  const [property] = await db
-    .select()
-    .from(properties)
-    .where(eq(properties.id, id));
-  return c.json(property);
-});
+propertiesRoutes.post("/properties", authMiddleware, createProperty);
 
-propertiesRoutes.post("/properties", async (c) => {
-  const body = await c.req.json<{
-    title: string;
-    description?: string;
-    floor: string;
-    price: number;
-    address: string;
-    userId: string;
-    status?: "pending" | "approved" | "rejected";
-  }>();
+propertiesRoutes.get("/properties/my", authMiddleware, myProperties);
 
-  const price = Number(body.price);
-  const id = crypto.randomUUID();
-  if (isNaN(price)) {
-    return c.json({ error: "Invalid price" }, 400);
-  }
-
-  const [newProperty] = await db
-    .insert(properties)
-    .values({
-      id,
-      title: body.title,
-      description: body.description || null,
-      floor: body.floor,
-      price: price,
-      address: body.address,
-      userId: body.userId,
-      status: body.status ?? "pending",
-    })
-    .returning();
-
-  return c.json(newProperty);
-});
+propertiesRoutes.get("/properties/:id", getPropertyById);
+propertiesRoutes.put("/properties/:id", authMiddleware, updateMyProperty);
 
 propertiesRoutes.delete("/properties/:id", async (c) => {
   const id = c.req.param("id");
@@ -79,40 +50,6 @@ propertiesRoutes.delete("/properties/:id", async (c) => {
   }
 
   return c.json({ message: "deleted" }, 200);
-});
-
-propertiesRoutes.put("/properties/:id", async (c) => {
-  const id = c.req.param("id");
-  const body = await c.req.json<{
-    title: string;
-    description?: string;
-    floor: string;
-    price: number;
-    address: string;
-  }>();
-
-  if (!body.title || !body.floor || !body.price || !body.address) {
-    return c.json({ error: "ข้อมูลไม่ครบ" });
-  }
-
-  const price = Number(body.price);
-  if (isNaN(price)) {
-    return c.json({ error: "Invalid price" }, 400);
-  }
-
-  const [updateProperty] = await db
-    .update(properties)
-    .set({
-      title: body.title,
-      description: body.description || null,
-      floor: body.floor,
-      price: price,
-      address: body.address,
-    })
-    .where(eq(properties.id, id))
-    .returning();
-
-  return c.json(updateProperty);
 });
 
 propertiesRoutes.put("/properties/:id/upload-image", async (c) => {

@@ -27,6 +27,22 @@ const PropertyLists = () => {
     setFilterStatus(status);
   };
 
+  const handleDelete = async (id: string) => {
+    if (confirm("คุณแน่ใจหรือไม่ที่จะลบประกาศนี้?")) {
+      await adminPropertiesService.deleteProperty(id);
+      fetchProperties();
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: string) => {
+    try {
+      await adminPropertiesService.updatePropertyStatus(id, status);
+      fetchProperties(); // Refresh list after update
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
   useEffect(() => {
     fetchProperties();
     handleFilterStatus(filterStatus);
@@ -80,6 +96,62 @@ const PropertyLists = () => {
               <p className="text-sm text-neutral-400 line-clamp-2">
                 {property.description}
               </p>
+              <p>{property.Owner?.name}</p>
+              <p>{property.status}</p>
+              {property.amenities.map((item: string, index: number) => (
+                <span key={index}>
+                  {item}
+                  <br />
+                </span>
+              ))}
+              <p>
+                {new Date(property.createdAt).toLocaleDateString("th-TH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+              <div className="flex gap-2 mt-2">
+                {property.status === "pending" && (
+                  <>
+                    <button
+                      onClick={() =>
+                        handleUpdateStatus(property.id, "approved")
+                      }
+                      className="py-2 px-4 rounded-xl bg-green-600 hover:bg-green-700 transition-colors"
+                    >
+                      อนุมัติ
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleUpdateStatus(property.id, "rejected")
+                      }
+                      className="py-2 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition-colors"
+                    >
+                      ไม่อนุมัติ
+                    </button>
+                  </>
+                )}
+                {property.status !== "pending" && (
+                  <span
+                    className={`px-3 py-1 rounded-lg text-sm ${
+                      property.status === "approved"
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-red-500/20 text-red-400"
+                    }`}
+                  >
+                    {property.status === "approved"
+                      ? "อนุมัติแล้ว"
+                      : "ถูกปฏิเสธ"}
+                  </span>
+                )}
+                <button
+                  onClick={() => handleDelete(property.id)}
+                  className="py-2 px-4 rounded-xl bg-neutral-700 hover:bg-neutral-600 transition-colors ml-auto"
+                >
+                  ลบ
+                </button>
+              </div>
             </div>
           </div>
         ))}

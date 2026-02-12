@@ -3,7 +3,6 @@ import { notifications, properties } from "@/db/schemas";
 import { Context } from "hono";
 import { eq, like } from "drizzle-orm";
 import { deleteFromR2, getR2PublicUrl, uploadToR2 } from "@/lib/r2";
-import { propertiesRoutes } from "../properties.routes";
 
 export const searchProperties = async (c: Context) => {
   const query = c.req.query("query");
@@ -15,7 +14,12 @@ export const searchProperties = async (c: Context) => {
 };
 
 export const getAllProperties = async (c: Context) => {
-  const result = await db.select().from(properties);
+  const result = await db.query.properties.findMany({
+    with: {
+      Owner: true, // ดึงข้อมูล User (relation ชื่อ Owner ที่ตั้งไว้ใน schema)
+    },
+    orderBy: (properties, { desc }) => [desc(properties.createdAt)],
+  });
   return c.json(result);
 };
 
@@ -158,12 +162,22 @@ export const updatePropertyImage = async (c: Context) => {
 };
 
 export const createProperty = async (c: Context) => {
+  // ดึง user จาก session (ต้องผ่าน authMiddleware ก่อน)
+  const user = c.get("user");
+
+  if (!user?.id) {
+    return c.json({ error: "Unauthorized - ไม่พบข้อมูล user" }, 401);
+  }
+
   const body = await c.req.json<{
     title: string;
     description?: string;
     floor: string;
     price: number;
     address: string;
+    status?: "pending" | "approved" | "rejected";
+    name: string;
+    amenities: string[];
   }>();
 
   const price = Number(body.price);
@@ -181,6 +195,8 @@ export const createProperty = async (c: Context) => {
       floor: body.floor,
       price: price,
       address: body.address,
+      userId: user.id, // ดึงจาก session อัตโนมัติ
+      amenities: body.amenities,
     })
     .returning();
 
@@ -191,4 +207,22 @@ export const createProperty = async (c: Context) => {
   });
 
   return c.json(newProperty);
+};
+
+//------------ update status property
+export const updatePropertyStatus = async (c: Context) => {
+  const id = c.req.param("id");
+  const body = await c.req.json<{
+    status: "pending" | "approved" | "rejected";
+  }>();
+
+  const [updatedProperty] = await db
+    .update(properties)
+    .set({
+      status: body.status,
+    })
+    .where(eq(properties.id, id))
+    .returning();
+
+  return c.json(updatedProperty);
 };

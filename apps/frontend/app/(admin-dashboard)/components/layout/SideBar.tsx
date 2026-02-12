@@ -2,8 +2,19 @@
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Building2, Home, Settings, User, ChevronUp, Bell } from "lucide-react";
+import {
+  Building2,
+  Home,
+  Settings,
+  User,
+  Bell,
+  Search,
+  Sparkles,
+  LifeBuoy,
+  FileText,
+  Inbox,
+  PanelLeft,
+} from "lucide-react";
 import UserBox from "@/components/UserBox";
 import { getAllNotifications } from "@/services/admin/notification";
 
@@ -13,20 +24,12 @@ type NavItem = {
   icon: React.ReactNode;
   badge?: number;
   badgeColor?: string;
-  option?: {
-    href: string;
-    label: string;
-    badge?: number;
-    badgeColor?: string;
-  }[];
 };
 
 const SideBar = () => {
   const pathname = usePathname();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([
-    "/dashboard/users",
-  ]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Fetch notification count
   useEffect(() => {
@@ -54,249 +57,256 @@ const SideBar = () => {
     {
       href: "/dashboard",
       label: "หน้าแรก",
-      icon: <Home size={20} />,
+      icon: <Home size={18} />,
     },
     {
       href: "/dashboard/users",
       label: "ผู้ใช้",
-      icon: <User size={20} />,
-      option: [
-        {
-          href: "/dashboard/users/approve",
-          label: "ยืนยันผู้ใช้",
-          badge: 2,
-          badgeColor: "bg-orange-400",
-        },
-        { href: "/dashboard/users", label: "รายชื่อผู้ใช้" },
-      ],
+      icon: <User size={18} />,
+      badge: 2,
+      badgeColor: "bg-orange-500",
     },
     {
       href: "/dashboard/properties",
       label: "ทรัพย์สิน",
-      icon: <Building2 size={20} />,
-      option: [
-        { href: "/dashboard/properties/approve", label: "ยืนยันทรัพย์สิน" },
-        { href: "/dashboard/properties", label: "รายชื่อทรัพย์สิน" },
-      ],
-    },
-    {
-      href: "/dashboard/settings",
-      label: "ตั้งค่า",
-      icon: <Settings size={20} />,
+      icon: <Building2 size={18} />,
     },
     {
       href: "/dashboard/notification",
       label: "แจ้งเตือน",
-      icon: <Bell size={20} />,
+      icon: <Bell size={18} />,
       badge: unreadCount > 0 ? unreadCount : undefined,
       badgeColor: "bg-red-500",
     },
+    {
+      href: "/dashboard/reports",
+      label: "รายงาน",
+      icon: <FileText size={18} />,
+    },
   ];
 
-  // Toggle expand/collapse menu
-  const toggleMenu = (href: string) => {
-    setExpandedMenus((prev) =>
-      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href],
-    );
-  };
+  // Extra items for visual completeness based on the example (linked to # for now)
+  const otherItems = [
+    { href: "#", label: "Documentation", icon: <FileText size={18} /> },
+    { href: "#", label: "Inbox", icon: <Inbox size={18} /> },
+    { href: "#", label: "Support", icon: <LifeBuoy size={18} /> },
+  ];
 
-  // เช็คว่า menu expand อยู่ไหม
-  const isExpanded = (href: string) => expandedMenus.includes(href);
-
-  // เช็คว่า submenu active หรือไม่
-  const isOptionActive = (optionHref: string) => {
-    // Exact match
-    if (pathname === optionHref) return true;
-
-    // สำหรับ path ที่อาจมี nested routes (เช่น /dashboard/users/123)
-    // แต่ต้องไม่ใช่ parent path (เช่น /dashboard/users vs /dashboard/users/approve)
-    const isParentPath = ["/dashboard/users", "/dashboard/properties"].includes(
-      optionHref,
-    );
-    if (isParentPath) {
-      // เช็คว่า pathname ขึ้นต้นด้วย optionHref แต่ต้องไม่ใช่ sub-route ที่มีใน navItems
-      return (
-        pathname.startsWith(optionHref + "/") && !pathname.includes("/approve")
-      );
-    }
-
-    // สำหรับ path อื่นๆ ใช้ startsWith
-    return pathname.startsWith(optionHref + "/");
-  };
-
-  // เช็คว่า parent มี submenu active ไหม
-  const hasActiveSubmenu = (item: NavItem) => {
-    return item.option?.some((opt) => isOptionActive(opt.href));
-  };
-
-  // เช็คว่า parent active หรือไม่
-  const isParentActive = (item: NavItem) => {
-    if (item.option) {
-      return false;
-    }
-    return pathname === item.href;
+  const isActive = (href: string) => {
+    if (href === "/dashboard" && pathname === "/dashboard") return true;
+    if (href !== "/dashboard" && pathname.startsWith(href)) return true;
+    return false;
   };
 
   return (
-    <div className="flex flex-col h-screen gap-1 p-4 w-64 bg-neutral-900">
-      <div className="text-white flex items-center gap-2 w-full">
-        <Link
-          href="/dashboard"
-          className="flex items-center justify-center py-4"
+    <aside
+      className={`flex flex-col h-screen ${isCollapsed ? "w-20" : "w-72"} bg-[#151517] border-r border-[#1F1F23] text-sm overflow-hidden font-sans transition-all duration-300`}
+    >
+      {/* Header */}
+      <div
+        className={`py-6 flex flex-col ${isCollapsed ? "items-center px-0" : "px-6"}`}
+      >
+        <div
+          className={`flex items-center ${isCollapsed ? "justify-center mb-6 flex-col gap-4" : "justify-between mb-6 w-full"}`}
         >
-          <img src="/logoipsum-360.svg" alt="" className="w-64" />
-        </Link>
-      </div>
-      {navItems.map((item) => (
-        <div key={item.href}>
-          {/* Parent Menu Item */}
-          {item.option ? (
-            // Menu with submenu - use div with onClick
-            <motion.div
-              className={`cursor-pointer p-2 rounded-xl ${
-                isParentActive(item)
-                  ? "bg-neutral-800 text-white"
-                  : hasActiveSubmenu(item)
-                    ? "text-white"
-                    : "hover:bg-neutral-800 text-neutral-400 hover:text-white"
-              }`}
-              onClick={() => toggleMenu(item.href)}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-3 group ${isCollapsed ? "justify-center" : ""}`}
+            title={isCollapsed ? "EstatePro" : ""}
+          >
+            <div className="min-w-8 w-8 h-8 rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-300">
+              <span className="text-white font-bold text-lg">E</span>
+            </div>
+            {!isCollapsed && (
+              <span className="text-white font-bold text-xl tracking-tight group-hover:text-indigo-400 transition-colors whitespace-nowrap">
+                EstatePro
+              </span>
+            )}
+          </Link>
+
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`text-neutral-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-[#1A1A1E] ${isCollapsed ? "" : ""}`}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            <PanelLeft size={18} className={isCollapsed ? "rotate-180" : ""} />
+          </button>
+        </div>
+        
+
+        {/* Search Bar */}
+        {!isCollapsed ? (
+          <div className="relative group w-full">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2  text-neutral-500 group-focus-within:text-indigo-400 transition-colors"
+              size={16}
+            />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-full bg-[#1A1A1E] text-neutral-300 pl-10 pr-12 py-2.5 rounded-xl border border-[#27272A] focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 border border-[#333] rounded px-1.5 py-0.5 text-[10px] items-center flex">
+              <span className="mr-0.5">⌘</span>F
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-center mb-2">
+            <button
+              className="p-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-[#1A1A1E] transition-colors"
+              title="Search"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <Search size={18} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <hr  className="border-[#27272A]"/>
+
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto px-4 space-y-8 scrollbar-hide py-2">
+        {/* Main Menu */}
+        <div className="w-full">
+          <div className="space-y-1">
+            {navItems.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  href={item.href}
+                  key={item.href}
+                  className="block mb-1 w-full"
+                >
                   <div
-                    className={`p-2 rounded-md ${
-                      isParentActive(item) || hasActiveSubmenu(item)
-                        ? "bg-neutral-700"
-                        : ""
+                    className={`relative overflow-hidden flex items-center ${isCollapsed ? "justify-center px-0 w-full" : "justify-start px-3"} py-2.5 rounded-xl transition-all duration-300 group ${
+                      active
+                        ? "bg-[#141418] text-white shadow-lg shadow-black/30"
+                        : "text-neutral-400 hover:text-white hover:bg-[#1A1A1E]"
                     }`}
+                    title={isCollapsed ? item.label : ""}
+                  >
+                    {/* Gradient Background for Active */}
+                    {active && (
+                      <div className="absolute inset-0 bg-linear-to-r inset-shadow-sm inset-shadow-neutral-700/50 opacity-100 rounded-xl pointer-events-none" />
+                    )}
+
+                    {/* Left Glow Bar for Active - Only show when expanded */}
+                    {active && !isCollapsed && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-indigo-500 rounded-r-md shadow-[0_0_10px_#6366f1]" />
+                    )}
+
+                    <div
+                      className={`flex items-center gap-3 relative z-10 ${isCollapsed ? "" : "pl-2 w-full"}`}
+                    >
+                      <span
+                        className={`shrink-0 ${active ? "text-indigo-400 drop-shadow-[0_0_5px_rgba(99,102,241,0.6)]" : "text-neutral-500 group-hover:text-white"} transition-colors duration-200`}
+                      >
+                        {item.icon}
+                      </span>
+                      {!isCollapsed && (
+                        <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                          {item.label}
+                        </span>
+                      )}
+                    </div>
+
+                    {!isCollapsed && item.badge && (
+                      <span
+                        className={`ml-auto ${item.badgeColor || "bg-red-500"} text-white text-[10px] font-bold px-1.5 py-0.5 rounded min-w-[18px] text-center shadow-sm`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                    {isCollapsed && item.badge && (
+                      <span
+                        className={`absolute top-2 right-2 w-2 h-2 ${item.badgeColor || "bg-red-500"} rounded-full border border-[#151517]`}
+                      ></span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Other Section */}
+        <div className="w-full">
+          {!isCollapsed && (
+            <p className="text-[10px] font-bold text-neutral-600 mb-3 px-3 uppercase tracking-wider whitespace-nowrap overflow-hidden">
+              Other
+            </p>
+          )}
+          <div className="space-y-1">
+            {otherItems.map((item, idx) => (
+              <Link href={item.href} key={idx} className="block w-full">
+                <div
+                  className={`flex items-center ${isCollapsed ? "justify-center px-0" : "gap-3 px-3 pl-5"} py-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-[#1A1A1E] transition-colors group relative overflow-hidden`}
+                  title={isCollapsed ? item.label : ""}
+                >
+                  <span
+                    className={`flex-shrink-0 text-neutral-500 group-hover:text-white transition-colors`}
                   >
                     {item.icon}
-                  </div>
-                  <span className="font-medium">{item.label}</span>
-                </div>
-                <motion.div
-                  animate={{ rotate: isExpanded(item.href) ? 0 : 180 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronUp size={16} />
-                </motion.div>
-              </div>
-            </motion.div>
-          ) : (
-            // Menu without submenu - use Link
-            <Link href={item.href}>
-              <motion.div
-                className={`cursor-pointer p-2 rounded-xl ${
-                  isParentActive(item)
-                    ? "bg-neutral-800 text-white"
-                    : "hover:bg-neutral-800 text-neutral-400 hover:text-white"
-                }`}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 rounded-md ${
-                        isParentActive(item) ? "bg-neutral-700" : ""
-                      }`}
-                    >
-                      {item.icon}
-                    </div>
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                  {/* Badge for notification */}
-                  {item.badge && (
-                    <span
-                      className={`${item.badgeColor || "bg-red-500"} text-white text-xs font-semibold px-2 py-0.5 rounded-full min-w-[20px] text-center`}
-                    >
-                      {item.badge}
+                  </span>
+                  {!isCollapsed && (
+                    <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                      {item.label}
                     </span>
                   )}
                 </div>
-              </motion.div>
-            </Link>
-          )}
-
-          {/* Submenu with animation */}
-          <AnimatePresence>
-            {item.option && isExpanded(item.href) && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="relative ml-4 mt-1">
-                  <div className="flex flex-col">
-                    {item.option.map((option, index) => (
-                      <div
-                        key={option.href + option.label}
-                        className="relative flex items-center"
-                      >
-                        {/* Curved connecting line */}
-                        <div
-                          className={`absolute left-0 w-4 h-5 border-l border-b border-neutral-700 rounded-bl-lg ${
-                            index === (item.option?.length || 0) - 1 ? "" : ""
-                          }`}
-                          style={{ top: "-2px" }}
-                        />
-                        {/* Vertical line extension (except last item) */}
-                        {index < (item.option?.length || 0) - 1 && (
-                          <div
-                            className="absolute left-0 w-px bg-neutral-700"
-                            style={{ top: "18px", height: "calc(100% - 10px)" }}
-                          />
-                        )}
-
-                        <Link
-                          href={option.href}
-                          key={option.href + option.label}
-                          className="flex-1"
-                        >
-                          <motion.div
-                            initial={{ x: -10, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ duration: 0.15, delay: index * 0.05 }}
-                            className={`cursor-pointer ml-4 px-3 py-2.5 rounded-xl flex items-center justify-between ${
-                              isOptionActive(option.href)
-                                ? "bg-neutral-700 text-white"
-                                : "text-neutral-400 hover:text-white"
-                            }`}
-                          >
-                            <span className="text-sm font-medium w-full">
-                              {option.label}
-                            </span>
-                            {option.badge && (
-                              <span
-                                className={`${
-                                  isOptionActive(option.href)
-                                    ? "bg-amber-600"
-                                    : "bg-neutral-600"
-                                } text-white text-xs font-semibold px-2 py-0.5 rounded-sm min-w-[20px] text-center`}
-                              >
-                                {option.badge}
-                              </span>
-                            )}
-                          </motion.div>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </Link>
+            ))}
+          </div>
         </div>
-      ))}
-      <div className="mt-auto">
-        <UserBox />
       </div>
-    </div>
+
+      {/* Footer Area */}
+      <div
+        className={`p-4 bg-[#0F0F12] border-t border-[#1F1F23] space-y-4 ${isCollapsed ? "flex flex-col items-center px-2" : ""}`}
+      >
+        {/* Pro Card */}
+        {!isCollapsed ? (
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#1A1A1E] to-[#151519] border border-[#27272A] p-4 group">
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 blur-3xl rounded-full group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={16} className="text-white fill-indigo-500" />
+                <span className="font-bold text-sm text-white whitespace-nowrap">
+                  Boost with AI
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-400 mb-3 leading-relaxed">
+                Unlock powerful insights.
+              </p>
+              <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-indigo-500/20 whitespace-nowrap">
+                Upgrade to Pro
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1A1A1E] text-indigo-400 hover:text-white hover:bg-indigo-600/20 transition-all border border-[#27272A]"
+            title="Upgrade to Pro"
+          >
+            <Sparkles size={18} />
+          </button>
+        )}
+
+        {/* User Profile */}
+        <div
+          className={`pt-1 w-full ${isCollapsed ? "flex justify-center" : ""}`}
+        >
+          {isCollapsed ? (
+            <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white cursor-pointer transition-colors">
+              <User size={18} />
+            </div>
+          ) : (
+            <UserBox variant="ghost" />
+          )}
+        </div>
+      </div>
+    </aside>
   );
 };
 
