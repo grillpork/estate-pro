@@ -5,11 +5,12 @@ import { authRoutes } from "./modules/auth.routes";
 import { corsMiddleware } from "./middleware/cors";
 import { logger } from "hono/logger";
 import { adminRoutes } from "./modules/admin/admin.routes";
+import {reportRoutes} from "./modules/report.routes";
 
 export const app = new Hono()
   .use("*", corsMiddleware)
   .use("*", logger())
-
+  .route("/", reportRoutes)
   .route("/", authRoutes)
   .route("/", userRoutes)
   .route("/", propertiesRoutes)
