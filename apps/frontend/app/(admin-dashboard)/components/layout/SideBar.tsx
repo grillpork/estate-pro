@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import UserBox from "@/components/UserBox";
 import { getAllNotifications } from "@/services/admin/notification";
+import { useSession } from "@/lib/auth-client";
 
 type NavItem = {
   href: string;
@@ -30,6 +31,7 @@ const SideBar = () => {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const session = useSession();
 
   // Fetch notification count
   useEffect(() => {
@@ -100,7 +102,7 @@ const SideBar = () => {
 
   return (
     <aside
-      className={`flex flex-col h-screen ${isCollapsed ? "w-20" : "w-72"} bg-[#151517] border-r border-[#1F1F23] text-sm overflow-hidden font-sans transition-all duration-300`}
+      className={`flex flex-col h-screen ${isCollapsed ? "w-20" : "w-72"} bg-[#151517] border-r border-[#1F1F23] text-sm  font-sans transition-all duration-300`}
     >
       {/* Header */}
       <div
@@ -132,7 +134,6 @@ const SideBar = () => {
             <PanelLeft size={18} className={isCollapsed ? "rotate-180" : ""} />
           </button>
         </div>
-        
 
         {/* Search Bar */}
         {!isCollapsed ? (
@@ -162,7 +163,7 @@ const SideBar = () => {
         )}
       </div>
 
-      <hr  className="border-[#27272A]"/>
+      <hr className="border-[#27272A]" />
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-4 space-y-8 scrollbar-hide py-2">
@@ -229,6 +230,8 @@ const SideBar = () => {
           </div>
         </div>
 
+        <hr className="border-[#27272A]" />
+
         {/* Other Section */}
         <div className="w-full">
           {!isCollapsed && (
@@ -244,7 +247,7 @@ const SideBar = () => {
                   title={isCollapsed ? item.label : ""}
                 >
                   <span
-                    className={`flex-shrink-0 text-neutral-500 group-hover:text-white transition-colors`}
+                    className={`shrink-0 text-neutral-500 group-hover:text-white transition-colors`}
                   >
                     {item.icon}
                   </span>
@@ -264,35 +267,6 @@ const SideBar = () => {
       <div
         className={`p-4 bg-[#0F0F12] border-t border-[#1F1F23] space-y-4 ${isCollapsed ? "flex flex-col items-center px-2" : ""}`}
       >
-        {/* Pro Card */}
-        {!isCollapsed ? (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#1A1A1E] to-[#151519] border border-[#27272A] p-4 group">
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 blur-3xl rounded-full group-hover:bg-indigo-500/20 transition-all duration-500"></div>
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className="text-white fill-indigo-500" />
-                <span className="font-bold text-sm text-white whitespace-nowrap">
-                  Boost with AI
-                </span>
-              </div>
-              <p className="text-[11px] text-neutral-400 mb-3 leading-relaxed">
-                Unlock powerful insights.
-              </p>
-              <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-indigo-500/20 whitespace-nowrap">
-                Upgrade to Pro
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1A1A1E] text-indigo-400 hover:text-white hover:bg-indigo-600/20 transition-all border border-[#27272A]"
-            title="Upgrade to Pro"
-          >
-            <Sparkles size={18} />
-          </button>
-        )}
-
         {/* User Profile */}
         <div
           className={`pt-1 w-full ${isCollapsed ? "flex justify-center" : ""}`}

@@ -3,7 +3,7 @@ import PropertyLists from "../../components/properties/PropertyLists";
 
 const page = () => {
   return (
-    <div>
+    <div className='w-full h-full'>
       <PropertyLists />
     </div>
   );

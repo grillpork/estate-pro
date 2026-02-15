@@ -4,6 +4,10 @@ export const adminPropertiesService = {
     const response = await api.get("/admin/properties");
     return response.data;
   },
+  getPublicProperties: async () => {
+    const response = await api.get("/admin/properties/public");
+    return response.data;
+  },
   getPropertyById: async (id: string) => {
     const response = await api.get(`/admin/properties/${id}`);
     return response.data;
@@ -40,9 +44,10 @@ export const adminPropertiesService = {
     return response.data;
   },
 
-  updatePropertyStatus: async (id: string, status: string) => {
+  updatePropertyStatus: async (id: string, status: string, reason?: string) => {
     const response = await api.put(`/admin/properties/${id}/status`, {
       status,
+      reason,
     });
     return response.data;
   },

@@ -16,12 +16,7 @@ type User = {
 
 userRoutes.get("/users", async (c) => {
   const users = await db
-    .select({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-    })
+    .select()
     .from(user);
   return c.json(users);
 });

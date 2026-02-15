@@ -25,6 +25,7 @@ export const searchUsers = async (c: Context) => {
       image: user.image,
       role: user.role,
       createdAt: user.createdAt,
+      status: user.status,
     })
     .from(user)
     .where(or(like(user.name, `%${search}%`), like(user.email, `%${search}%`)));
@@ -48,6 +49,7 @@ export const getAllUsers = async (c: Context) => {
       image: user.image,
       role: user.role,
       createdAt: user.createdAt,
+      status: user.status,
     })
     .from(user)
     .limit(limit)

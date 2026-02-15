@@ -3,12 +3,18 @@ import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 // roles enum
 export const rolesEnum = pgEnum("roles", ["user", "admin", "superadmin"]);
 
+// status enum
+export const statusEnum = pgEnum("status", ["active", "inactive", "deleted"]);
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   name: text("name"),
   image: text("image"), //url r2
+
+  // status
+  status: statusEnum("status").notNull().default("active"),
 
   // role
   role: rolesEnum("role").notNull().default("user"),
@@ -64,6 +70,9 @@ export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

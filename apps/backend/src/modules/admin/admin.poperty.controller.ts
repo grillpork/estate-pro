@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { notifications, properties } from "@/db/schemas";
+import { notifications, properties, auditLogs } from "@/db/schemas";
 import { Context } from "hono";
 import { eq, like } from "drizzle-orm";
 import { deleteFromR2, getR2PublicUrl, uploadToR2 } from "@/lib/r2";
@@ -17,6 +17,17 @@ export const getAllProperties = async (c: Context) => {
   const result = await db.query.properties.findMany({
     with: {
       Owner: true, // ดึงข้อมูล User (relation ชื่อ Owner ที่ตั้งไว้ใน schema)
+    },
+    orderBy: (properties, { desc }) => [desc(properties.createdAt)],
+  });
+  return c.json(result);
+};
+
+export const getPublicProperties = async (c: Context) => {
+  const result = await db.query.properties.findMany({
+    where: eq(properties.status, "approved"), // สำคัญ! กรองเฉพาะที่อนุมัติแล้ว
+    with: {
+      Owner: true, // ดึงข้อมูลเจ้าของประกาศมาด้วย
     },
     orderBy: (properties, { desc }) => [desc(properties.createdAt)],
   });
@@ -211,18 +222,51 @@ export const createProperty = async (c: Context) => {
 
 //------------ update status property
 export const updatePropertyStatus = async (c: Context) => {
+  //ดึง user จาก session
+  const user = c.get("user");
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  //ดึง id จาก param
   const id = c.req.param("id");
+
+  //ดึงข้อมูลจาก body
   const body = await c.req.json<{
     status: "pending" | "approved" | "rejected";
+    reason?: string;
   }>();
 
+  //หา status เดิมก่อน เพื่อเอาไปเก็บ Log
+  const [oldProperty] = await db
+    .select({ status: properties.status })
+    .from(properties)
+    .where(eq(properties.id, id));
+
+  if (oldProperty) c.json({ error: "ไม่พบข้อมูลอสังหา" }, 400);
+
+  //อัปเดตข้อมูล
   const [updatedProperty] = await db
     .update(properties)
     .set({
       status: body.status,
+      rejectionReason: body.status === "rejected" ? body.reason : null,
     })
     .where(eq(properties.id, id))
     .returning();
+
+  //บันทึก Audit Log ลงฐานข้อมูล
+  await db.insert(auditLogs).values({
+    id: crypto.randomUUID(),
+    actorId: user.id, // ใครทำ (Admin ID)
+    action: body.status === "approved" ? "approve" : "reject", // ทำอะไร
+    entityType: "property", // ทำกับอะไร
+    entityId: id, // ID ของอสังหาฯ
+    details: {
+      oldStatus: oldProperty.status, // สถานะเก่า
+      newStatus: body.status, // สถานะใหม่
+      reason: body.reason, // เหตุผล (ถ้ามี)
+    },
+  });
 
   return c.json(updatedProperty);
 };

@@ -1,9 +1,8 @@
-import React from 'react'
+import React from "react";
+import ReportsList from "../../components/ReportsList";
 
 const page = () => {
-  return (
-    <div>page</div>
-  )
-}
+  return <ReportsList />;
+};
 
-export default page
+export default page;
