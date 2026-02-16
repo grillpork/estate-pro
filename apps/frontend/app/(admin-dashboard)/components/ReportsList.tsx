@@ -13,85 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Mock Data (Replace with API call later)
-const initialReports = [
-  {
-    id: 1,
-    title: "Inappropriate Content",
-    description:
-      "This property list contains offensive language in the description.",
-    status: "pending",
-    date: "2024-02-14",
-    reporter: { name: "John Doe", email: "john@example.com", image: "" },
-    target: "Property #1234",
-  },
-  {
-    id: 2,
-    title: "Scam Alert",
-    description:
-      "The owner is asking for payment outside the platform. Please investigate immediately.",
-    status: "resolved",
-    date: "2024-02-13",
-    reporter: { name: "Alice Smith", email: "alice@example.com", image: "" },
-    target: "User #5678",
-  },
-  {
-    id: 3,
-    title: "Duplicate Listing",
-    description:
-      "This property is listed multiple times with different prices.",
-    status: "dismissed",
-    date: "2024-02-12",
-    reporter: { name: "Bob Johnson", email: "bob@example.com", image: "" },
-    target: "Property #9012",
-  },
-  {
-    id: 4,
-    title: "Fake Photos",
-    description: "The photos used in this listing are from a stock image site.",
-    status: "pending",
-    date: "2024-02-14",
-    reporter: { name: "Sarah Wilson", email: "sarah@example.com", image: "" },
-    target: "Property #3456",
-  },
-  {
-    id: 5,
-    title: "Harassment",
-    description: "User sent abusive messages in the chat.",
-    status: "pending",
-    date: "2024-02-11",
-    reporter: { name: "Mike Brown", email: "mike@example.com", image: "" },
-    target: "User #7890",
-  },
-  {
-    id: 6,
-    title: "Harassment",
-    description: "User sent abusive messages in the chat.",
-    status: "pending",
-    date: "2024-02-11",
-    reporter: { name: "Mike Brown", email: "mike@example.com", image: "" },
-    target: "User #7890",
-  },
-  {
-    id: 7,
-    title: "Harassment",
-    description: "User sent abusive messages in the chat.",
-    status: "pending",
-    date: "2024-02-11",
-    reporter: { name: "Mike Brown", email: "mike@example.com", image: "" },
-    target: "User #7890",
-  },
-  {
-    id: 8,
-    title: "Harassment",
-    description: "User sent abusive messages in the chat.",
-    status: "pending",
-    date: "2024-02-11",
-    reporter: { name: "Mike Brown", email: "mike@example.com", image: "" },
-    target: "User #7890",
-  },
-];
+import { getAllReports } from "@/services/admin/report";
 
 const filterStatusOptions = [
   { id: 0, name: "all", label: "All Status" },
@@ -101,15 +23,36 @@ const filterStatusOptions = [
 ];
 
 const ReportsList = () => {
-  const [reports, setReports] = useState(initialReports);
-  const [filteredReports, setFilteredReports] = useState(initialReports);
+  const [reports, setReports] = useState<any[]>([]);
+  const [filteredReports, setFilteredReports] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [filterDate, setFilterDate] = useState("");
-  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
-  const handleOpen = (id: number) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getAllReports();
+        // Map API data to UI structure
+        const mappedData = data.map((item: any) => ({
+          ...item,
+          status: item.status || "pending", // Default to pending if missing
+          target: item.target || "System", // Default target
+          date: item.createdAt,
+          reporter: item.user,
+        }));
+        setReports(mappedData);
+        setFilteredReports(mappedData);
+      } catch (error) {
+        console.error("Failed to fetch reports:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleOpen = (id: string) => {
     setSelectedReportId(id);
   };
 
@@ -124,9 +67,9 @@ const ReportsList = () => {
       );
     }
 
-    // Filter by Date
+    // Filter by Date (Simple string match for now, ideally compare Date objects)
     if (filterDate) {
-      result = result.filter((r) => r.date === filterDate);
+      result = result.filter((r) => r.date.startsWith(filterDate));
     }
 
     // Search
@@ -136,7 +79,8 @@ const ReportsList = () => {
         (r) =>
           r.title.toLowerCase().includes(lowerTerm) ||
           r.description.toLowerCase().includes(lowerTerm) ||
-          r.reporter.name.toLowerCase().includes(lowerTerm),
+          r.reporter?.name?.toLowerCase().includes(lowerTerm) ||
+          r.reporter?.email?.toLowerCase().includes(lowerTerm),
       );
     }
 
@@ -313,7 +257,7 @@ const ReportsList = () => {
                   <div className="flex items-center gap-4 text-xs text-neutral-500">
                     <div className="flex items-center gap-1.5">
                       <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                        {report.reporter.image ? (
+                        {report.reporter?.image ? (
                           <img
                             src={report.reporter.image}
                             className="w-full h-full rounded-full object-cover"
@@ -323,7 +267,9 @@ const ReportsList = () => {
                         )}
                       </div>
                       <span className="text-neutral-300">
-                        {report.reporter.name}
+                        {report.reporter?.name ||
+                          report.reporter?.email ||
+                          "Unknown"}
                       </span>
                     </div>
                     <div className="w-1 h-1 rounded-full bg-neutral-700"></div>
@@ -334,9 +280,12 @@ const ReportsList = () => {
                     <div className="w-1 h-1 rounded-full bg-neutral-700"></div>
                     <div className="flex items-center gap-1">
                       <Calendar size={12} />
-                      {new Date(report.date).toLocaleDateString("en-US", {
-                        month: "short",
+                      {new Date(report.date).toLocaleDateString("th-TH", {
                         day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </div>
                   </div>
@@ -373,13 +322,17 @@ const ReportsList = () => {
                       <h3 className="text-sm font-semibold text-neutral-300 mb-1">
                         Title
                       </h3>
-                      <p className="text-neutral-400 p-2 rounded-lg border border-[#27272A] bg-[#202024]">{report.title}</p>
+                      <p className="text-neutral-400 p-2 rounded-lg border border-[#27272A] bg-[#202024]">
+                        {report.title}
+                      </p>
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-neutral-300 mb-1">
                         Description
                       </h3>
-                      <p className="text-neutral-400 h-64 p-2 rounded-lg border border-[#27272A] bg-[#202024] ">{report.description}</p>
+                      <p className="text-neutral-400 h-64 p-2 rounded-lg border border-[#27272A] bg-[#202024] ">
+                        {report.description}
+                      </p>
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-neutral-300 mb-1">
@@ -393,7 +346,7 @@ const ReportsList = () => {
                       </div>
                       <div className="flex items-center mt-4 gap-2">
                         <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                          {report.reporter.image ? (
+                          {report.reporter?.image ? (
                             <img
                               src={report.reporter.image}
                               className="w-full h-full object-cover"
@@ -403,8 +356,12 @@ const ReportsList = () => {
                           )}
                         </div>
                         <span className="flex flex-col text-sm text-neutral-400">
-                            <p className="text-white">{report.reporter.name}</p>
-                            <p className="text-neutral-500 text-xs">{report.reporter.email}</p>
+                          <p className="text-white">
+                            {report.reporter?.name || "Unknown"}
+                          </p>
+                          <p className="text-neutral-500 text-xs">
+                            {report.reporter?.email || ""}
+                          </p>
                         </span>
                       </div>
                     </div>

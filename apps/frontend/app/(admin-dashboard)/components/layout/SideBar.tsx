@@ -14,6 +14,7 @@ import {
   FileText,
   Inbox,
   PanelLeft,
+  ArrowLeftToLine,
 } from "lucide-react";
 import UserBox from "@/components/UserBox";
 import { getAllNotifications } from "@/services/admin/notification";
@@ -109,14 +110,14 @@ const SideBar = () => {
         className={`py-6 flex flex-col ${isCollapsed ? "items-center px-0" : "px-6"}`}
       >
         <div
-          className={`flex items-center ${isCollapsed ? "justify-center mb-6 flex-col gap-4" : "justify-between mb-6 w-full"}`}
+          className={`relative flex items-center ${isCollapsed ? "justify-center mb-6 flex-col gap-4" : "justify-between mb-6 w-full"}`}
         >
           <Link
             href="/dashboard"
             className={`flex items-center gap-3 group ${isCollapsed ? "justify-center" : ""}`}
             title={isCollapsed ? "EstatePro" : ""}
           >
-            <div className="min-w-8 w-8 h-8 rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-300">
+            <div className="min-w-8 w-8 h-8 rounded-md bg-linear-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-300">
               <span className="text-white font-bold text-lg">E</span>
             </div>
             {!isCollapsed && (
@@ -128,10 +129,10 @@ const SideBar = () => {
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`text-neutral-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-[#1A1A1E] ${isCollapsed ? "" : ""}`}
+            className={`absolute top-0 -right-10 p-2 bg-[#151517] cursor-pointer text-neutral-500 hover:text-white transition-colors rounded-lg hover:bg-[#1A1A1E] ${isCollapsed ? "" : ""}`}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            <PanelLeft size={18} className={isCollapsed ? "rotate-180" : ""} />
+            <ArrowLeftToLine size={18} className={isCollapsed ? "rotate-180" : ""} />
           </button>
         </div>
 

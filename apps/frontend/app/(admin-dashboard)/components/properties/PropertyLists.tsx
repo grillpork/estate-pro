@@ -53,7 +53,19 @@ const PropertyLists = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
 
+  const [statusConfirmation, setStatusConfirmation] = useState<{
+    isOpen: boolean;
+    propertyId: string | null;
+    status: "approved" | "rejected" | null;
+    reason: string;
+  }>({ isOpen: false, propertyId: null, status: null, reason: "" });
+
   const [activeTab, setActiveTab] = useState<"all" | "pending">("all");
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    propertyId: string | null;
+  }>({ isOpen: false, propertyId: null });
 
   const fetchProperties = async () => {
     setIsLoading(true);
@@ -111,29 +123,62 @@ const PropertyLists = () => {
     currentPage * itemsPerPage,
   );
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this property?")) {
-      await adminPropertiesService.deleteProperty(id);
-      setProperties((prev) => prev.filter((p) => p.id !== id));
+  const handleDelete = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, propertyId: id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.propertyId) return;
+    try {
+      await adminPropertiesService.deleteProperty(
+        deleteConfirmation.propertyId,
+      );
+      setProperties((prev) =>
+        prev.filter((p) => p.id !== deleteConfirmation.propertyId),
+      );
+    } catch (error) {
+      console.error("Error deleting property:", error);
+    } finally {
+      setDeleteConfirmation({ isOpen: false, propertyId: null });
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: string) => {
-    //เพิ่มเหตุผลที่ไม่อนุมัติ
-    let reason = "";
-    if (status === "rejected") {
-      const input = prompt("กรุณาระบุเหตุผลที่ไม่อนุมัติ (Rejection Reason):");
-      if (input === null) return; // User cancelled
-      reason = input;
-    }
-    //อัพเดทสถานะ
+  const handleUpdateStatus = (id: string, status: string) => {
+    // Cast string back to union type safely if logic guarantees it, or change param type
+    const safeStatus = status as "approved" | "rejected";
+    setStatusConfirmation({
+      isOpen: true,
+      propertyId: id,
+      status: safeStatus,
+      reason: "",
+    });
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!statusConfirmation.propertyId || !statusConfirmation.status) return;
+
     try {
-      await adminPropertiesService.updatePropertyStatus(id, status, reason);
+      await adminPropertiesService.updatePropertyStatus(
+        statusConfirmation.propertyId,
+        statusConfirmation.status,
+        statusConfirmation.reason,
+      );
       setProperties((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, status } : p)),
+        prev.map((p) =>
+          p.id === statusConfirmation.propertyId
+            ? { ...p, status: statusConfirmation.status! }
+            : p,
+        ),
       );
     } catch (error) {
       console.error("Error updating status:", error);
+    } finally {
+      setStatusConfirmation({
+        isOpen: false,
+        propertyId: null,
+        status: null,
+        reason: "",
+      });
     }
   };
 
@@ -521,6 +566,152 @@ const PropertyLists = () => {
           </div>
         </div>
       </div>
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {deleteConfirmation.isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() =>
+                setDeleteConfirmation({ isOpen: false, propertyId: null })
+              }
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md p-6 bg-[#1A1A1E] border border-[#27272A] rounded-2xl shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                  <Trash2 size={24} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-white">ยืนยันการลบ?</h3>
+                  <p className="text-neutral-400 text-sm">
+                    คุณแน่ใจหรือไม่ที่จะลบประกาศนี้?
+                    การกระทำนี้ไม่สามารถย้อนกลับได้
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 w-full mt-2">
+                  <button
+                    onClick={() =>
+                      setDeleteConfirmation({ isOpen: false, propertyId: null })
+                    }
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-[#27272A] text-neutral-300 hover:bg-[#27272A] hover:text-white transition-colors text-sm font-medium"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-colors text-sm font-medium shadow-lg shadow-red-500/20"
+                  >
+                    ลบประกาศ
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Status Confirmation Dialog */}
+      <AnimatePresence>
+        {statusConfirmation.isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() =>
+                setStatusConfirmation({ ...statusConfirmation, isOpen: false })
+              }
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md p-6 bg-[#1A1A1E] border border-[#27272A] rounded-2xl shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center gap-4">
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    statusConfirmation.status === "approved"
+                      ? "bg-green-500/10 text-green-500"
+                      : "bg-red-500/10 text-red-500"
+                  }`}
+                >
+                  {statusConfirmation.status === "approved" ? (
+                    <Check size={24} />
+                  ) : (
+                    <X size={24} />
+                  )}
+                </div>
+                <div className="space-y-2 w-full">
+                  <h3 className="text-xl font-bold text-white">
+                    {statusConfirmation.status === "approved"
+                      ? "ยืนยันการอนุมัติ?"
+                      : "ปฏิเสธการอนุมัติ?"}
+                  </h3>
+                  <p className="text-neutral-400 text-sm">
+                    {statusConfirmation.status === "approved"
+                      ? "คุณแน่ใจหรือไม่ที่จะอนุมัติประกาศนี้? ประกาศจะแสดงให้ผู้ใช้ทุกคนเห็น"
+                      : "คุณแน่ใจหรือไม่ที่จะปฏิเสธประกาศนี้? กรุณาระบุเหตุผลด้านล่าง"}
+                  </p>
+
+                  {statusConfirmation.status === "rejected" && (
+                    <textarea
+                      value={statusConfirmation.reason}
+                      onChange={(e) =>
+                        setStatusConfirmation({
+                          ...statusConfirmation,
+                          reason: e.target.value,
+                        })
+                      }
+                      placeholder="กรุณาระบุเหตุผล..."
+                      className="w-full h-24 bg-[#0F0F12] border border-[#27272A] rounded-xl p-3 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-red-500/50 resize-none mt-2"
+                    />
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 w-full mt-2">
+                  <button
+                    onClick={() =>
+                      setStatusConfirmation({
+                        ...statusConfirmation,
+                        isOpen: false,
+                      })
+                    }
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-[#27272A] text-neutral-300 hover:bg-[#27272A] hover:text-white transition-colors text-sm font-medium"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={confirmStatusUpdate}
+                    disabled={
+                      statusConfirmation.status === "rejected" &&
+                      !statusConfirmation.reason.trim()
+                    }
+                    className={`flex-1 px-4 py-2.5 rounded-xl text-white transition-colors text-sm font-medium shadow-lg ${
+                      statusConfirmation.status === "approved"
+                        ? "bg-green-500 hover:bg-green-600 shadow-green-500/20"
+                        : "bg-red-500 hover:bg-red-600 shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    }`}
+                  >
+                    {statusConfirmation.status === "approved"
+                      ? "อนุมัติ"
+                      : "ปฏิเสธ"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

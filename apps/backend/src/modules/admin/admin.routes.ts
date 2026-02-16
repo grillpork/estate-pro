@@ -28,6 +28,7 @@ import {
 } from "./notification.controller";
 import { authMiddleware } from "@/middleware/auth.middleware";
 import { getAllLogs } from "./admin.logs.controller";
+import { getAllReports } from "./admin.report.controller";
 
 export const adminRoutes = new Hono()
 
@@ -66,4 +67,7 @@ export const adminRoutes = new Hono()
   .delete("/notifications/:id", deleteNotification)
 
   // Logs routes
-  .get("/logs", getAllLogs);
+  .get("/logs", getAllLogs)
+
+  // Report routes
+  .get("/reports", getAllReports);

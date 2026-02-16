@@ -73,6 +73,11 @@ const UserLists = () => {
 
   const [properties, setProperties] = useState<Property[]>([]);
 
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    userId: string | null;
+  }>({ isOpen: false, userId: null });
+
   // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -127,10 +132,20 @@ const UserLists = () => {
     fetchUsers();
   }, [currentPage, debouncedSearch, itemsPerPage, filterRole]);
 
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-    await adminUsersService.deleteUser(id);
-    setUsers(users.filter((user) => user.id !== id));
+  const handleDeleteUser = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, userId: id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.userId) return;
+    try {
+      await adminUsersService.deleteUser(deleteConfirmation.userId);
+      setUsers(users.filter((user) => user.id !== deleteConfirmation.userId));
+    } catch (error) {
+      console.error("Failed to delete user", error);
+    } finally {
+      setDeleteConfirmation({ isOpen: false, userId: null });
+    }
   };
 
   const handleUpdateRole = async (id: string, role: string) => {
@@ -570,6 +585,57 @@ const UserLists = () => {
           </div>
         </div>
       </div>
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {deleteConfirmation.isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() =>
+                setDeleteConfirmation({ isOpen: false, userId: null })
+              }
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md p-6 bg-[#1A1A1E] border border-[#27272A] rounded-2xl shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                  <Trash2 size={24} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-white">Delete User?</h3>
+                  <p className="text-neutral-400 text-sm">
+                    Are you sure you want to delete this user? This action
+                    cannot be undone and all associated data will be removed.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 w-full mt-2">
+                  <button
+                    onClick={() =>
+                      setDeleteConfirmation({ isOpen: false, userId: null })
+                    }
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-[#27272A] text-neutral-300 hover:bg-[#27272A] hover:text-white transition-colors text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-colors text-sm font-medium shadow-lg shadow-red-500/20"
+                  >
+                    Delete User
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

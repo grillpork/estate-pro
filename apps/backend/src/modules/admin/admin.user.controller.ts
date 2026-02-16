@@ -70,17 +70,12 @@ export const getAllUsers = async (c: Context) => {
 export const getUserById = async (c: Context) => {
   const id = c.req.param("id");
 
-  const [foundUser] = await db
-    .select({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      image: user.image,
-      role: user.role,
-      createdAt: user.createdAt,
-    })
-    .from(user)
-    .where(eq(user.id, id));
+  const foundUser = await db.query.user.findFirst({
+    where: eq(user.id, id),
+    with: {
+      properties: true,
+    },
+  });
 
   if (!foundUser) {
     return c.json({ error: "ไม่พบ user" }, 404);
