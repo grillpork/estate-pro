@@ -8,16 +8,25 @@ export interface Property {
   title: string;
   description?: string;
   price: number;
+  bedroom?: number;
+  bathroom?: number;
+  size?: number;
   image?: string;
   userId?: string;
   status?: "pending" | "approved" | "rejected";
+  type?: "rent" | "sale";
+  category?: "house" | "condo" | "land";
+  furnitureStatus?: "complete" | "partial" | "empty";
   amenities?: string[];
   floor: string;
   address: string;
 }
 
 export const getProperties = async (c: Context) => {
-  const property = await db.select().from(properties);
+  const property = await db
+    .select()
+    .from(properties)
+    .where(eq(properties.status, "approved"));
   return c.json(property);
 };
 
@@ -75,6 +84,13 @@ export const updateMyProperty = async (c: Context) => {
     description: body.description || null,
     floor: body.floor,
     price: body.price,
+    bedroom: body.bedroom,
+    bathroom: body.bathroom,
+    size: body.size,
+    image: body.image,
+    type: body.type,
+    category: body.category ,
+    furnitureStatus: body.furnitureStatus ,
     address: body.address,
     amenities: body.amenities,
   };
@@ -102,6 +118,13 @@ export const createProperty = async (c: Context) => {
   let body = await c.req.json<Property>();
 
   const price = Number(body.price);
+  const bedroom = Number(body.bedroom)
+  const bathroom =Number(body.bathroom)
+  const size =  Number(body.size)
+  const type = body.type 
+  const category = body.category 
+  const furnitureStatus = body.furnitureStatus 
+  const image = body.image 
   const id = crypto.randomUUID();
   if (isNaN(price)) {
     return c.json({ error: "Invalid price" }, 400);
@@ -115,9 +138,17 @@ export const createProperty = async (c: Context) => {
       description: body.description || null,
       floor: body.floor,
       price: price,
+      bedroom,
+      bathroom,
+      size,
+      image,
+      type,
+      category,
+      furnitureStatus,
       address: body.address,
       userId: user.id,
       amenities: body.amenities,
+      status: "pending", 
     })
     .returning();
 

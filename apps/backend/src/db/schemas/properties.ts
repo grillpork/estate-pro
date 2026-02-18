@@ -15,12 +15,25 @@ export const propState = pgEnum("prop_state", [
   "rejected",
 ]);
 export const propType = pgEnum("prop_type", ["rent", "sale"]);
+export const propCategory = pgEnum("prop_category", [
+  "house",
+  "condo",
+  "land",
+]);
+export const furnitureStatus = pgEnum("furniture_status", [
+  "complete",
+  "partial",
+  "empty",
+]);
 
 export const properties = pgTable("properties", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
   floor: text("floor").notNull(),
+  bedroom: integer("bedroom").notNull(),
+  bathroom: integer("bathroom").notNull(),
+  size: integer("size").notNull(),
   price: integer("price").notNull(),
   address: text("address").notNull(),
   image: text("image"),
@@ -28,6 +41,10 @@ export const properties = pgTable("properties", {
   status: propState("status").default("pending").notNull(),
   //ประเภทของอสังหา ขายหรือเช่า
   type: propType("type").default("rent").notNull(),
+  //ประเภทอสังหาริมทรัพย์ บ้าน คอนโด ที่ดิน
+  category: propCategory("category").default("house").notNull(),
+  //สถานะเฟอร์นิเจอร์/การตกแต่ง ครบ บางส่วน ว่าง
+  furnitureStatus: furnitureStatus("furniture_status").default("empty").notNull(),
   // amenities: text("amenities").array(),
   amenities: json("amenities").$type<string[]>().default([]),
   //เหตุผลที่ปฏิเสธ
