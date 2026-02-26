@@ -7,7 +7,6 @@ import {
 import { useForm } from "react-hook-form";
 import {
   Car,
-  Layers,
   Plus,
   Minus,
   Image as ImageIcon,
@@ -15,13 +14,15 @@ import {
   ShieldCheck,
   AirVent,
   WashingMachine,
-  Waves,
   Dumbbell,
-  Filter,
   ChevronDown,
   Check,
   X,
+  PawPrint,
+  Pause,
+  WavesLadder,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 // ใช้ framer-motion สำหรับทำแอนิเมชัน dropdown และ dialog
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -56,15 +57,15 @@ interface ListingType {
 
 // รายการสิ่งอำนวยความสะดวก "ส่วนกลางโครงการ"
 const commonAreaAmenities = [
-  { value: "ลิฟต์", label: "ลิฟต์", icon: <Layers size={18} /> },
+  { value: "ลิฟต์", label: "ลิฟต์", icon: <Pause size={18} /> },
   { value: "ที่จอดรถ", label: "ที่จอดรถ", icon: <Car size={18} /> },
   { value: "ฟิตเนส", label: "ฟิตเนส", icon: <Dumbbell size={18} /> },
-  { value: "สระว่ายน้ำ", label: "สระว่ายน้ำ", icon: <Waves size={18} /> },
+  { value: "สระว่ายน้ำ", label: "สระว่ายน้ำ", icon: <WavesLadder size={18} /> },
 ];
 
 // รายการสิ่งอำนวยความสะดวก "ภายในห้อง"
 const roomAmenities = [
-  { value: "เลี้ยงสัตว์ได้", label: "เลี้ยงสัตว์ได้", icon: <Plus size={18} /> },
+  { value: "เลี้ยงสัตว์ได้", label: "เลี้ยงสัตว์ได้", icon: <PawPrint size={18} /> },
   { value: "กล้อง CCTV", label: "กล้อง CCTV", icon: <Cctv size={18} /> },
   { value: "รปภ. 24 ชม.", label: "รปภ. 24 ชม.", icon: <ShieldCheck size={18} /> },
   { value: "แอร์ (AC)", label: "แอร์ (AC)", icon: <AirVent size={18} /> },
@@ -80,6 +81,7 @@ const categoryOptions = [
 
 // คอมโพเนนต์หลักสำหรับฟอร์มสร้าง/แก้ไขประกาศทรัพย์สิน
 const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
+  const router = useRouter();
   // เปิด/ปิด dropdown ประเภททรัพย์สิน
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   // เก็บ error จากฝั่ง API
@@ -321,17 +323,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
               )}
             </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block text-white">
-                รายละเอียด
-              </label>
-              <textarea
-                {...register("description")}
-                className="w-full p-4 bg-[#0F0F12] text-white rounded-xl border border-[#27272A] focus:border-indigo-500 outline-none transition  resize-none placeholder:text-neutral-600"
-                placeholder="เล่าเพิ่มเติมเกี่ยวกับจุดเด่น ทำเล การเดินทาง และเงื่อนไขต่าง ๆ"
-              />
-            </div>
-
+           
             {/* ประเภททรัพย์สิน + ราคา */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -356,7 +348,6 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                         : "bg-[#0F0F12] border-[#27272A] text-neutral-400 hover:text-white"
                     }`}
                   >
-                    <Filter size={16} />
                     <span className="flex-1 text-left">
                       {categoryOptions.find((c) => c.name === watchCategory)
                         ?.label || "เลือกประเภท"}
@@ -439,10 +430,10 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
 
             {/* แสดงเฉพาะคอนโดและบ้าน */}
             {(watchCategory === "condo" || watchCategory === "house") && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#0F0F12] p-6 rounded-2xl border border-[#27272A]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center space-y-2">
                   <p className="text-sm text-neutral-400">ห้องนอน </p>
-                  <div className="flex items-center justify-center gap-4 bg-[#1A1A1E] rounded-xl p-2 border border-[#27272A]">
+                  <div className="flex items-center justify-center gap-4 bg-[#0F0F12] rounded-xl p-2 border border-[#27272A]">
                     <button
                       type="button"
                       onClick={() =>
@@ -466,7 +457,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                 </div>
                 <div className="text-center space-y-2">
                   <p className="text-sm text-neutral-400">ห้องน้ำ </p>
-                  <div className="flex items-center justify-center gap-4 bg-[#1A1A1E] rounded-xl p-2 border border-[#27272A]">
+                  <div className="flex items-center justify-center gap-4 bg-[#0F0F12] rounded-xl p-2 border border-[#27272A]">
                     <button
                       type="button"
                       onClick={() =>
@@ -493,14 +484,14 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                   <input
                     {...register("size")}
                     type="number"
-                    className="w-full p-2 text-center bg-[#1A1A1E] text-white rounded-xl border border-[#27272A] font-bold outline-none placeholder:text-neutral-600"
+                    className="w-full p-2 text-center bg-[#0F0F12] text-white rounded-xl border border-[#27272A] font-bold outline-none placeholder:text-neutral-600"
                     placeholder="1"
                   />
                 </div>
 
                 {/* ชั้น และ ตึก - แสดงเฉพาะคอนโด */}
                 {watchCategory === "condo" && (
-                  <>
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-1 block text-white ">
                         ชั้น Floor <span className="text-red-500">*</span>
@@ -509,12 +500,12 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                         {...register("floor", { 
                           required: "กรุณากรอกชั้น" 
                         })}
-                        className={`w-full p-4 bg-[#1A1A1E] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
+                        className={`w-full p-4 bg-[#0F0F12] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
                           errors.floor 
                             ? "border-red-500 focus:border-red-500" 
                             : "border-[#27272A] focus:border-indigo-500"
                         }`}
-                        placeholder="เช่น 1 A"
+                        placeholder="เช่น 12 A"
                       />
                       {errors.floor && (
                         <p className="text-red-500 text-xs mt-1">{errors.floor.message as string}</p>
@@ -528,18 +519,18 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                         {...register("building", { 
                           required: "กรุณากรอกตึก / อาคาร" 
                         })}
-                        className={`w-full p-4 bg-[#1A1A1E] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
+                        className={`w-full p-4 bg-[#0F0F12] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
                           errors.building 
                             ? "border-red-500 focus:border-red-500" 
                             : "border-[#27272A] focus:border-indigo-500"
                         }`}
-                        placeholder="เช่น อาคาร A"
+                        placeholder="เช่น อาคาร B"
                       />
                       {errors.building && (
                         <p className="text-red-500 text-xs mt-1">{errors.building.message as string}</p>
                       )}
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* ขนาดที่ดิน - แสดงเฉพาะบ้าน */}
@@ -566,7 +557,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                             }
                           })}
                           type="number"
-                          className={`w-full p-4 pr-12 bg-[#1A1A1E] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
+                          className={`w-full p-4 pr-12 bg-[#0F0F12] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
                             errors.rai 
                               ? "border-red-500 focus:border-red-500" 
                               : "border-[#27272A] focus:border-indigo-500"
@@ -584,7 +575,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                         <input
                           {...register("ngan")}
                           type="number"
-                          className={`w-full p-4 pr-12 bg-[#1A1A1E] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
+                          className={`w-full p-4 pr-12 bg-[#0F0F12] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
                             errors.rai 
                               ? "border-red-500 focus:border-red-500" 
                               : "border-[#27272A] focus:border-indigo-500"
@@ -602,7 +593,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                         <input
                           {...register("squareWah")}
                           type="number"
-                          className={`w-full p-4 pr-12 bg-[#1A1A1E] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
+                          className={`w-full p-4 pr-12 bg-[#0F0F12] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
                             errors.rai 
                               ? "border-red-500 focus:border-red-500" 
                               : "border-[#27272A] focus:border-indigo-500"
@@ -623,26 +614,6 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                 )}
 
                 <div className="md:col-span-3">
-                  <label className="text-sm font-medium mb-1 block text-white">
-                    ที่อยู่ <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register("address", { 
-                      required: "กรุณากรอกที่อยู่" 
-                    })}
-                    className={`w-full p-4 bg-[#1A1A1E] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
-                      errors.address 
-                        ? "border-red-500 focus:border-red-500" 
-                        : "border-[#27272A] focus:border-indigo-500"
-                    }`}
-                    placeholder="ที่อยู่โดยละเอียด"
-                  />
-                  {errors.address && (
-                    <p className="text-red-500 text-xs mt-1">{errors.address.message as string}</p>
-                  )}
-                </div>
-
-                <div className="md:col-span-3">
                   <label className="text-sm font-medium mb-2 block text-white">
                     การตกแต่ง furniture
                   </label>
@@ -659,7 +630,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                         className={`p-3 text-sm rounded-xl transition-all border ${
                           watchFurniture === item.id
                             ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-[#1A1A1E] text-neutral-400 border-[#27272A] hover:text-white"
+                            : "bg-[#0F0F12] text-neutral-400 border-[#27272A] hover:text-white"
                         }`}
                       >
                         {item.label}
@@ -672,7 +643,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
 
             {/* กรณีประเภท "ที่ดิน": ขนาดที่ดิน + ที่อยู่ */}
             {watchCategory === "land" && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#0F0F12] p-6 rounded-2xl border border-[#27272A]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-3">
                   <label className="text-sm font-medium mb-1 block text-white">
                     ขนาดที่ดิน <span className="text-red-500">*</span>
@@ -740,52 +711,6 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
                     </p>
                   </div>
                 )}
-
-                <div className="md:col-span-3">
-                  <label className="text-sm font-medium mb-1 block text-white">
-                    ที่อยู่ <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register("address", { 
-                      required: "กรุณากรอกที่อยู่" 
-                    })}
-                    className={`w-full p-4 bg-[#0F0F12] text-white rounded-xl border outline-none placeholder:text-neutral-600 ${
-                      errors.address 
-                        ? "border-red-500 focus:border-red-500" 
-                        : "border-[#27272A] focus:border-indigo-500"
-                    }`}
-                    placeholder="ที่อยู่โดยละเอียด"
-                  />
-                  {errors.address && (
-                    <p className="text-red-500 text-xs mt-1">{errors.address.message as string}</p>
-                  )}
-                </div>
-
-                <div className="md:col-span-3">
-                  <label className="text-sm font-medium mb-2 block text-white">
-                    การตกแต่ง furniture
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: "complete", label: "เฟอร์นิเจอร์ครบ" },
-                      { id: "partial", label: "บางส่วน" },
-                      { id: "empty", label: "ห้องเปล่า" },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setValue("furnitureStatus", item.id as any)}
-                        className={`p-3 text-sm rounded-xl transition-all border ${
-                          watchFurniture === item.id
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-[#0F0F12] text-neutral-400 border-[#27272A] hover:text-white"
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -822,7 +747,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
 
           {/* ถ้าเป็นที่ดินจะไม่มีรายการสิ่งอำนวยความสะดวกให้เลือก */}
           {watchCategory === "land" ? (
-            <div className="bg-[#0F0F12] p-6 rounded-2xl border border-[#27272A]">
+            <div>
               <p className="text-neutral-400 text-sm">ไม่มีข้อมูล</p>
             </div>
           ) : watchCategory === "house" ? (
@@ -903,22 +828,30 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
           )}
         </section>
 
+        {/*  4: แผนที่ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
+              4
+            </span>
+            <h2 className="text-lg font-bold text-white">แผนที่</h2>
+          </div>
+        </section>
+
         {/* แสดงข้อความ error กรณี API มีปัญหา */}
         {apiError && (
           <p className="text-sm text-red-500 text-center">{apiError}</p>
         )}
 
-        {/* ปุ่มกดท้ายฟอร์ม: ยกเลิก + บันทึก/อัปเดต */}
+        {/* ปุ่มกดท้ายฟอร์ม: ย้อนกลับ + บันทึก/อัปเดต */}
         <div className="flex justify-end gap-3 pt-2">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-5 py-3 rounded-2xl border border-[#27272A] text-sm text-neutral-400 hover:bg-[#0F0F12] hover:text-white transition"
-            >
-              ยกเลิก
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="px-5 py-3 rounded-2xl border border-[#27272A] text-sm text-neutral-400 hover:bg-[#0F0F12] hover:text-white transition"
+          >
+            ย้อนกลับ
+          </button>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -928,7 +861,7 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
               ? "กำลังบันทึก..."
               : initialData
               ? "อัปเดต"
-              : "ลงประกาศทรัพย์สิน"}
+              : "ถัดไป"}
           </button>
         </div>
       </form>
