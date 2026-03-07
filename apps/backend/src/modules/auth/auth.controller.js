@@ -49,13 +49,13 @@ export const register = async (req, res) => {
 // POST /auth/login
 export const login = async (req, res) => {
     try {
-        const { username, password } = req.body
+        const { email, password } = req.body
 
-        // 1. หา user จาก username
+        // 1. หา user จาก email
         const result = await db
             .select()
             .from(users)
-            .where(eq(users.username, username))
+            .where(eq(users.email, email))
 
         const user = result[0]
 

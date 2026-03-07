@@ -4,6 +4,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { storage } from './middleware/upload.js'
 import authRouter from './modules/auth/auth.routes.js'
+import { userRouter } from './modules/users/user.routes.js'
 
 const PORT = 4000
 
@@ -18,6 +19,9 @@ app.post('/upload', upload.single('fileupload'), (req, res) => {
 
 // Auth routes
 app.use('/auth', authRouter)
+
+// User routes
+app.use('/api', userRouter)
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
