@@ -1,23 +1,24 @@
+import 'dotenv/config'
 import express from 'express'
+import cors from 'cors'
 import multer from 'multer'
 import { storage } from './middleware/upload.js'
-import userRouter from './router/user.routes.js'
+import authRouter from './modules/auth/auth.routes.js'
 
 const PORT = 4000
-const HOST ='localhost'
 
-const app = express();
-app.use(express.json());
+const app = express()
+app.use(cors())
+app.use(express.json())
 
-const upload = multer({storage:storage});
-app.post('/upload',upload.single('fileupload'),(req,res) => {
-    // if(!upload) ไว้ก่อน ลืม
-    res.send('complete '+ req.file.originalname);
-    
-});
+const upload = multer({ storage: storage })
+app.post('/upload', upload.single('fileupload'), (req, res) => {
+    res.send('complete ' + req.file.originalname)
+})
 
-app.use('/', userRouter)
+// Auth routes
+app.use('/auth', authRouter)
 
 app.listen(PORT, () => {
-    console.log(`Server http://localhost:${PORT} is running`)
-});
+    console.log(`Server running at http://localhost:${PORT}`)
+})
