@@ -74,6 +74,7 @@ export const login = async (req, res) => {
         // 4. สร้าง JWT token (payload: email + role)
         const token = jwt.sign(
             {
+                id: user.id,
                 email: user.email,
                 role: user.role,
             },
