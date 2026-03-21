@@ -1,4 +1,6 @@
 import { eq } from 'drizzle-orm'
+import fs from 'fs'
+import path from 'path'
 import { db } from '../../database/schema/db.js'
 import { properties } from '../../database/schema/index.js'
 
@@ -67,18 +69,34 @@ export const createProperty = async (req, res) => {
             body.availableDate = new Date()
         }
 
-        const payload = {
-            ...req.body,
-            userId: Number(req.user.id),
+        if (body.amenities !== undefined) {
+            if (typeof body.amenities === 'string') {
+                try {
+                    body.amenities = JSON.parse(body.amenities)
+                } catch (e) {
+                    return res.status(400).json({ message: 'Invalid amenities JSON' })
+                }
+            }
+
+            if (!Array.isArray(body.amenities)) {
+                return res.status(400).json({ message: 'amenities must be an array' })
+            }
         }
 
-        const [created] = await db.insert(properties).values(payload).returning()
+        const [created] = await db
+            .insert(properties)
+            .values({
+                ...body,
+                userId: Number(req.user.id),
+            })
+            .returning()
         return res.status(201).json(created)
     } catch (error) {
         console.error('createProperty error:', error)
         return res.status(500).json({ message: 'Internal server error' })
     }
 }
+
 
 // PUT /properties/:id
 export const updateProperty = async (req, res) => {
@@ -95,19 +113,93 @@ export const updateProperty = async (req, res) => {
             body.availableDate = isNaN(d.getTime()) ? null : d
         }
 
-        const [updated] = await db
-            .update(properties)
-            .set(req.body)
-            .where(eq(properties.id, Number(id)))
-            .returning()
+        if (body.amenities !== undefined) {
+            if (typeof body.amenities === 'string') {
+                try {
+                    body.amenities = JSON.parse(body.amenities)
+                } catch (e) {
+                    return res.status(400).json({ message: 'Invalid amenities JSON' })
+                }
+            }
 
-        if (!updated) {
+            if (!Array.isArray(body.amenities)) {
+                return res.status(400).json({ message: 'amenities must be an array' })
+            }
+        }
+
+        // ตรวจว่าทรัพย์สินนี้เป็นของ user คนนี้จริงหรือไม่
+        const [existing] = await db
+            .select()
+            .from(properties)
+            .where(eq(properties.id, Number(id)))
+
+        if (!existing) {
             return res.status(404).json({ message: 'Property not found' })
         }
+
+        if (existing.userId !== Number(req.user.id)) {
+            return res.status(403).json({ message: 'Forbidden: Not your property' })
+        }
+
+        const [updated] = await db
+            .update(properties)
+            .set(body)
+            .where(eq(properties.id, Number(id)))
+            .returning()
 
         return res.json(updated)
     } catch (error) {
         console.error('updateProperty error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+
+// PUT /properties/:id/image
+export const updatePropertyImage = async (req, res) => {
+    try {
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Unauthorized' })
+        }
+
+        const { id } = req.params
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'Image file is required' })
+        }
+
+        // หา property เดิมเพื่อระบุ path รูปเก่า
+        const [existing] = await db
+            .select()
+            .from(properties)
+            .where(eq(properties.id, Number(id)))
+
+        if (!existing) {
+            return res.status(404).json({ message: 'Property not found' })
+        }
+
+        if (existing.userId !== Number(req.user.id)) {
+            return res.status(403).json({ message: 'Forbidden: Not your property' })
+        }
+
+        // ลบไฟล์รูปเก่าถ้ามี
+        if (existing.imagePath) {
+            const oldPath = path.resolve(process.cwd(), existing.imagePath)
+            fs.unlink(oldPath, (err) => {
+                if (err && err.code !== 'ENOENT') {
+                    console.error('Failed to delete old property image:', err)
+                }
+            })
+        }
+
+        const [updated] = await db
+            .update(properties)
+            .set({ imagePath: req.file.path })
+            .where(eq(properties.id, Number(id)))
+            .returning()
+
+        return res.json(updated)
+    } catch (error) {
+        console.error('updatePropertyImage error:', error)
         return res.status(500).json({ message: 'Internal server error' })
     }
 }
@@ -121,14 +213,32 @@ export const deleteProperty = async (req, res) => {
 
         const { id } = req.params
 
-        const [deleted] = await db
-            .delete(properties)
+        // หา record ก่อนเพื่อลบไฟล์
+        const [existing] = await db
+            .select()
+            .from(properties)
             .where(eq(properties.id, Number(id)))
-            .returning()
 
-        if (!deleted) {
+        if (!existing) {
             return res.status(404).json({ message: 'Property not found' })
         }
+
+        if (existing.userId !== Number(req.user.id)) {
+            return res.status(403).json({ message: 'Forbidden: Not your property' })
+        }
+
+        if (existing.imagePath) {
+            const oldPath = path.resolve(process.cwd(), existing.imagePath)
+            fs.unlink(oldPath, (err) => {
+                if (err && err.code !== 'ENOENT') {
+                    console.error('Failed to delete property image on delete:', err)
+                }
+            })
+        }
+
+        await db
+            .delete(properties)
+            .where(eq(properties.id, Number(id)))
 
         return res.json({ message: 'Property deleted' })
     } catch (error) {
@@ -136,3 +246,4 @@ export const deleteProperty = async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' })
     }
 }
+
