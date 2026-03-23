@@ -3,7 +3,7 @@ import { users } from '../../database/schema/index.js';
 import { eq } from 'drizzle-orm';
 
 export const getAllUsers = async (req, res) => {
-    const [user] = await db.select().from(users);
+    const user = await db.select().from(users);
     return res.json(user)
 }
 
