@@ -2,7 +2,9 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
+import swaggerUi from 'swagger-ui-express'
 import { storage } from './middleware/upload.js'
+import { swaggerDocument } from './docs/swagger.js'
 import authRouter from './modules/auth/auth.routes.js'
 import { userRouter } from './modules/users/user.routes.js'
 import { propertiesRouter } from './modules/Properties/Properties.routes.js'
@@ -14,6 +16,11 @@ const PORT = 4000
 const app = express()
 app.use(cors())
 app.use(express.json())
+
+app.get('/api-docs.json', (req, res) => {
+    res.json(swaggerDocument)
+})
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 const upload = multer({ storage: storage })
 app.post('/upload', upload.single('fileupload'), (req, res) => {
@@ -37,4 +44,5 @@ app.use('/landmarks', landmarkRouter)
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
+    console.log(`Swagger docs at http://localhost:${PORT}/api-docs`)
 })
