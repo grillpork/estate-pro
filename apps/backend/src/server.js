@@ -12,11 +12,15 @@ import { brandsRouter } from './modules/brands/brands.routes.js'
 import { landmarkRouter } from './modules/landmarks/landmark.routes.js'
 import { conversationsRouter } from './modules/conversations/conversations.routes.js'
 import { favoritesRouter } from './modules/favorites/favorites.routes.js'
+import { membershipPlansRouter } from './modules/membershipPlans/membershipPlans.routes.js'
 
 const PORT = 4000
 
 const app = express()
-app.use(cors())
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    credentials: true,
+}))
 app.use(express.json())
 app.use('/uploads', express.static('uploads'))
 
@@ -50,6 +54,9 @@ app.use('/', conversationsRouter)
 
 // Favorites routes
 app.use('/', favoritesRouter)
+
+// Membership Plans routes
+app.use('/', membershipPlansRouter)
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
