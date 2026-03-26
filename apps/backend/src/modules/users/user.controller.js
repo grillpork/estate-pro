@@ -18,8 +18,8 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const id = req.params.id
-        const { username, firstName, lastName, password, phoneNumber, role } = req.body
-        const updateUser = await db
+        const { username, firstName, lastName, password, phoneNumber, roleId } = req.body
+        const updatedUsers = await db
             .update(users)
             .set({
                 username,
@@ -27,12 +27,16 @@ export const updateUser = async (req, res) => {
                 lastName,
                 password,
                 phoneNumber,
-                role
+                roleId: roleId ? Number(roleId) : undefined
             })
             .where(eq(users.id, Number(id)))
             .returning()
 
-        res.json(updateUser)
+        if (updatedUsers.length === 0) {
+            return res.status(404).json({ message: 'User not found' })
+        }
+
+        res.json(updatedUsers[0])
 
     } catch (err) {
         res.status(500).json({ error: err.message })
