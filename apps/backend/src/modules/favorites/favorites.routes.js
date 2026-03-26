@@ -4,7 +4,6 @@ import {
     deleteFavorite,
     getAllFavorites,
     getFavoriteById,
-    updateFavorite,
 } from './favorites.controller.js'
 
 export const favoritesRouter = express.Router()
