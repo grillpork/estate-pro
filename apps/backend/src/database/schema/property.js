@@ -15,6 +15,7 @@ export const properties = pgTable("properties", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
+  imageIds: integer("image_ids").references(() => propertyImages.id),
   startingPrice: numeric("starting_price", { precision: 15, scale: 2 }).notNull(),
   rentPrice: numeric("rent_price", { precision: 15, scale: 2 }),
   projectArea: varchar("project_area", { length: 255 }),
@@ -46,7 +47,6 @@ export const properties = pgTable("properties", {
   availableDate: timestamp("available_date", { withTimezone: false }),
   brandId: integer("brand_id").references(() => brands.id),
   userId: integer("user_id").references(() => users.id),
-  imagePath: varchar("image_path", { length: 255 }),
   amenities: jsonb("amenities"),
   listingType: varchar("listing_type", { length: 50 }),
   discount: numeric("discount", { precision: 15, scale: 2 }),
@@ -64,3 +64,12 @@ export const properties = pgTable("properties", {
   updatedAt: timestamp("updated_at", { withTimezone: false }),
 });
 
+export const propertyImages = pgTable("property_images", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  propertyId: integer("property_id").references(() => properties.id),
+  imagePath: varchar("image_path", { length: 255 }),
+  isMain: boolean("is_main").notNull().default(false),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: false }),
+});

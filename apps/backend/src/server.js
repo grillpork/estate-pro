@@ -13,6 +13,7 @@ import { landmarkRouter } from './modules/landmarks/landmark.routes.js'
 import { conversationsRouter } from './modules/conversations/conversations.routes.js'
 import { favoritesRouter } from './modules/favorites/favorites.routes.js'
 import { membershipPlansRouter } from './modules/membershipPlans/membershipPlans.routes.js'
+import uploadTestRouter from './modules/upload-test.routes.js'
 
 const PORT = 4000
 
@@ -29,10 +30,8 @@ app.get('/api-docs.json', (req, res) => {
 })
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
-const upload = multer({ storage: storage })
-app.post('/upload', upload.single('fileupload'), (req, res) => {
-    res.send('complete ' + req.file.originalname)
-})
+// Testing routes
+app.use('/', uploadTestRouter)
 
 // Auth routes
 app.use('/auth', authRouter)
@@ -47,7 +46,7 @@ app.use('/', propertiesRouter)
 app.use('/', brandsRouter)
 
 // Landmarks (train stations) routes
-app.use('/landmarks', landmarkRouter)
+app.use('/', landmarkRouter)
 
 // Conversations routes
 app.use('/', conversationsRouter)
