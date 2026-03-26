@@ -1,9 +1,8 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, User, Sparkles, ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authService } from "@/services/auth";
 
 const UserBox = ({
@@ -11,28 +10,44 @@ const UserBox = ({
 }: {
   variant?: "default" | "ghost";
 }) => {
-  const { data: session, isPending } = useSession();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await authService.getCurrentUser();
+        setUser(data);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = async () => {
     try {
       await authService.logout();
-      router.push("/login");
+      setUser(null);
+      router.push("/auth/sign-in");
       router.refresh();
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
-  if (isPending)
+  if (loading)
     return <div className="text-white text-xs p-2">Loading...</div>;
 
-  if (!session)
+  if (!user)
     return (
       <button
-        className="bg-indigo-600 cursor-pointer text-white p-2 rounded-xl w-full text-xs font-medium hover:bg-indigo-700 transition-colors"
-        onClick={() => router.push("/login")}
+        className="bg-amber-600 cursor-pointer text-white px-4 py-2 rounded-xl text-xs font-medium hover:bg-amber-700 transition-colors shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20"
+        onClick={() => router.push("/auth/sign-in")}
       >
         Sign in
       </button>
@@ -49,20 +64,15 @@ const UserBox = ({
       onClick={() => setIsOpen(!isOpen)}
     >
       <div className="flex items-center gap-3 overflow-hidden">
-        <img
-          className="w-9 h-9 rounded-lg object-cover bg-neutral-700"
-          src={
-            session.user.image ||
-            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmn4pWrDE1f07NiO_-ALAPW18mUchf6vj9oA&s"
-          }
-          alt={session.user.name || "User"}
-        />
+        <div className="w-9 h-9 rounded-lg bg-neutral-700 flex items-center justify-center text-white/40 group-hover:bg-amber-500/20 group-hover:text-amber-400 transition-colors">
+          <User size={20} />
+        </div>
         <div className="flex flex-col overflow-hidden text-left">
-          <p className="text-sm font-medium text-white truncate group-hover:text-indigo-400 transition-colors">
-            {session.user.name || "User"}
+          <p className="text-sm font-medium text-white truncate group-hover:text-amber-400 transition-colors">
+            {user.firstName || user.username || "User"}
           </p>
           <p className="text-[10px] text-neutral-400 truncate">
-            {session.user.email}
+            {user.email}
           </p>
         </div>
       </div>
@@ -70,26 +80,21 @@ const UserBox = ({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute bottom-0 left-68 w-full mb-2 bg-[#151517] border border-[#27272A] rounded-xl shadow-xl p-1 z-50 overflow-hidden min-w-[200px]">
+        <div className="absolute top-full right-0 mt-2 bg-[#151517] border border-[#27272A] rounded-xl shadow-xl p-1 z-50 overflow-hidden min-w-[200px]">
           <div className="px-3 py-2 border-b border-[#27272A]">
             <p className="text-sm font-medium text-white truncate">
-              {session.user.name}
+              {user.firstName || user.username}
             </p>
             <p className="text-xs text-neutral-400 truncate">
-              {session.user.email}
+              {user.email}
             </p>
           </div>
 
           <div className="p-1">
-            <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
-              <Sparkles size={16} />
-              Upgrade to Pro
-            </button>
-          </div>
-
-          <div className="h-px bg-[#27272A] my-1" />
-
-          <div className="p-1">
+            <div className="text-[10px] text-amber-500/60 uppercase tracking-widest font-bold flex items-center gap-1.5 px-3 py-2 bg-amber-500/5 rounded-lg mb-1">
+              <Sparkles size={12} className="animate-pulse" />
+              <span>{user.role || 'user'}</span>
+            </div>
             <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
               <User size={16} />
               Profile

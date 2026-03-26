@@ -20,13 +20,14 @@
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
     "multer": "^2.1.0",
     "nodemon": "^3.1.14",
+    "sharp": "^0.34.1",
     "swagger": "^0.7.5",
-    "swagger-ui-express": "^5.0.1",
-    "tsx": "^4.21.0"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.9"
+    "drizzle-kit": "^0.31.10"
   }
 }

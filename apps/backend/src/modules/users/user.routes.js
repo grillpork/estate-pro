@@ -4,7 +4,7 @@ import { deleteUser, getAllUsers, updateUser , getUserById} from './user.control
 
 export const userRouter = express.Router()
 .get('/users',getAllUsers)
-.get('/user/:id', getUserById)
-.patch('/user/:id', updateUser)
-.delete('/user/:id',deleteUser)
+.get('/users/:id', getUserById)
+.patch('/users/:id', updateUser)
+.delete('/users/:id',deleteUser)
 
