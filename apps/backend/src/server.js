@@ -12,6 +12,7 @@ import { brandsRouter } from './modules/brands/brands.routes.js'
 import { landmarkRouter } from './modules/landmarks/landmark.routes.js'
 import { conversationsRouter } from './modules/conversations/conversations.routes.js'
 import { favoritesRouter } from './modules/favorites/favorites.routes.js'
+import { membershipPlansRouter } from './modules/membershipPlans/membershipPlans.routes.js'
 
 const PORT = 4000
 
@@ -53,6 +54,9 @@ app.use('/', conversationsRouter)
 
 // Favorites routes
 app.use('/', favoritesRouter)
+
+// Membership Plans routes
+app.use('/', membershipPlansRouter)
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
