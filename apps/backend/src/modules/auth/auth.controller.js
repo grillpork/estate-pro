@@ -80,7 +80,7 @@ export const login = async (req, res) => {
                 role: user.role,
             },
             process.env.JWT_SECRET,
-            { expiresIn: '1d' } // token หมดอายุใน 1 วัน
+            { expiresIn: '7d' } // token หมดอายุใน 7 วัน
         )
 
         return res.status(200).json({

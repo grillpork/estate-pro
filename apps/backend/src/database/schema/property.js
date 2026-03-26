@@ -15,7 +15,7 @@ export const properties = pgTable("properties", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  imageIds: integer("image_ids").references(() => propertyImages.id),
+  imageId: integer("image_id").references(() => propertyImages.id),
   startingPrice: numeric("starting_price", { precision: 15, scale: 2 }).notNull(),
   rentPrice: numeric("rent_price", { precision: 15, scale: 2 }),
   projectArea: varchar("project_area", { length: 255 }),

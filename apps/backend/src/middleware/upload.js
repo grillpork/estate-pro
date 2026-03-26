@@ -20,18 +20,57 @@ export const upload = multer({
   },
 });
 
+// Helper: สร้างโฟลเดอร์ถ้ายังไม่มี
+const ensureDir = async (dir) => {
+  try {
+    await fs.access(dir);
+  } catch {
+    await fs.mkdir(dir, { recursive: true });
+  }
+};
+
+// Helper: ล้างอักขระพิเศษเพื่อให้ชื่อโครงการใช้เป็นชื่อโฟลเดอร์ได้
+const sanitizeDirName = (name) => {
+  if (!name) return "unknown";
+  return name.toString()
+    .replace(/[<>:"/\\|?*]/g, "") // ลบอักขระที่ Windows ไม่ยอมรับ
+    .trim()
+    .replace(/\s+/g, "_"); // เปลี่ยนช่องว่างเป็น underscore
+};
+
+// Helper: หา uploadDir ตาม subfolder ที่ตั้งไว้ใน req.uploadSubfolder
+// และรองรับการแยกโฟลเดอร์ตามชื่อโครงการ (req.body.name)
+const getUploadDir = (req) => {
+  const baseSubfolder = req.uploadSubfolder || "";
+  let finalPath = path.join(process.cwd(), "uploads", baseSubfolder);
+
+  // ถ้าเป็น property และมีชื่อโครงการส่งมา ให้สร้าง subfolder แยกตามชื่อโครงการ
+  if (baseSubfolder === "property" && req.body && req.body.name) {
+    const propertyTitle = sanitizeDirName(req.body.name);
+    finalPath = path.join(finalPath, propertyTitle);
+  }
+
+  return finalPath;
+};
+
+// Factory function: สร้าง middleware สำหรับกำหนด subfolder
+export const setUploadFolder = (subfolder) => (req, _res, next) => {
+  req.uploadSubfolder = subfolder;
+  next();
+};
+
+// Middleware: optimize single image
 export const optimizeImage = async (req, res, next) => {
+  // If we have req.files (from upload.any()) but not req.file, pick the first one
+  if (!req.file && req.files && req.files.length > 0) {
+    req.file = req.files[0];
+  }
+
   if (!req.file) return next();
 
   try {
-    const uploadDir = path.join(process.cwd(), "uploads");
-
-    // Ensure upload directory exists
-    try {
-      await fs.access(uploadDir);
-    } catch {
-      await fs.mkdir(uploadDir, { recursive: true });
-    }
+    const uploadDir = getUploadDir(req);
+    await ensureDir(uploadDir);
 
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const fileName = `${uniqueSuffix}.webp`;
@@ -128,14 +167,8 @@ export const optimizeImages = async (req, res, next) => {
   if (!req.files || req.files.length === 0) return next();
 
   try {
-    const uploadDir = path.join(process.cwd(), "uploads");
-
-    // Ensure upload directory exists
-    try {
-      await fs.access(uploadDir);
-    } catch {
-      await fs.mkdir(uploadDir, { recursive: true });
-    }
+    const uploadDir = getUploadDir(req);
+    await ensureDir(uploadDir);
 
     // Process all files in parallel
     const results = await Promise.all(

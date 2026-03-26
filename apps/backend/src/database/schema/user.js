@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 255 }), // Increase length
   lastName: varchar("last_name", { length: 255 }), // Increase length
   imagePath: varchar("image_path", { length: 255 }),
-  phoneNumber: varchar("phone_number", { length: 255 }).notNull(), // Increase length
+  phoneNumber: varchar("phone_number", { length: 255 }), // Increase length
   roleId: integer("role_id").references(() => roles.id), // nullable: ป้องกัน data-loss บน rows เดิม
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

@@ -93,6 +93,10 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
   // สถานะระหว่างกำลังยืนยัน (ป้องกันกดซ้ำ)
   const [isConfirming, setIsConfirming] = useState(false);
 
+  // State สำหรับรูปภาพ
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.mainImage ? `http://localhost:4000/${initialData.mainImage}` : null);
+
   // ตั้งค่า react-hook-form พร้อมค่าเริ่มต้น
   const {
     register,
@@ -163,6 +167,18 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
     setValue("amenities", current);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // handle submit (ขั้นแรก: ตรวจสอบ/จัดรูปแบบข้อมูล และเปิดกล่องยืนยัน)
   const onSubmitForm = async (data: any) => {
     setApiError(null);
@@ -202,12 +218,20 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
     setIsConfirming(true);
     setApiError(null);
     try {
+      let propertyId = initialData?.id;
+
       if (initialData) {
         // ถ้ามี initialData แสดงว่าเป็นการอัปเดตประกาศเดิม
         await updatePropertyService(initialData.id, formData);
       } else {
         // ถ้าไม่มี initialData แสดงว่าเป็นการสร้างประกาศใหม่
-        await propertyService.createProperty(formData);
+        const response = await propertyService.createProperty(formData);
+        propertyId = response.id;
+      }
+
+      // ถ้ามีรูปที่เลือกไว้ ให้อัปโหลดรูปด้วย
+      if (selectedFile && propertyId) {
+        await propertyService.updatePropertyImage(propertyId, selectedFile);
       }
 
       if (onSubmit) {
@@ -724,15 +748,38 @@ const ListingProperty = ({ initialData, onSubmit, onCancel }: ListingType) => {
             </span>
             <h2 className="text-lg font-bold text-white">รูปภาพอสังหา</h2>
           </div>
-          <div className="border-2 border-dashed border-[#27272A] rounded-3xl p-12 flex flex-col items-center justify-center gap-4 hover:bg-[#0F0F12] transition cursor-pointer">
-            <div className="p-4 bg-[#0F0F12] rounded-full text-neutral-400">
-              <ImageIcon size={40} />
-            </div>
-            <p className="text-sm text-neutral-400">
-              คลิกเพื่ออัพโหลด หรือ ลากไฟล์มาวางที่นี่
-            </p>
-            
-            
+          <div 
+            onClick={() => document.getElementById('image-upload')?.click()}
+            className="group relative border-2 border-dashed border-[#27272A] rounded-3xl p-4 min-h-[300px] flex flex-col items-center justify-center gap-4 hover:bg-[#0F0F12] transition cursor-pointer overflow-hidden"
+          >
+            {previewUrl ? (
+              <div className="absolute inset-0 w-full h-full">
+                <img 
+                  src={previewUrl} 
+                  alt="Property preview" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <p className="text-white font-medium">เปลี่ยนรูปภาพ</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 bg-[#0F0F12] rounded-full text-neutral-400">
+                  <ImageIcon size={40} />
+                </div>
+                <p className="text-sm text-neutral-400">
+                  คลิกเพื่ออัพโหลดรูปภาพหน้าปก
+                </p>
+              </>
+            )}
+            <input 
+              id="image-upload"
+              type="file" 
+              className="hidden" 
+              accept="image/*"
+              onChange={handleFileChange}
+            />
           </div>
         </section>
 

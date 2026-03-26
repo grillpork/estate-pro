@@ -2,13 +2,59 @@ import { eq } from 'drizzle-orm'
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../database/schema/db.js'
-import { properties } from '../../database/schema/index.js'
+import { properties, propertyImages, brands } from '../../database/schema/index.js'
+
+// Helper to fetch property with joins
+const getPropertyByIdWithJoins = async (id) => {
+    const result = await db
+        .select({
+            property: properties,
+            mainImage: propertyImages,
+            brand: brands
+        })
+        .from(properties)
+        .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
+        .leftJoin(brands, eq(properties.brandId, brands.id))
+        .where(eq(properties.id, Number(id)))
+
+    const row = result[0]
+    if (!row || !row.property) return null
+
+    // Fetch all images for this property
+    const allImages = await db
+        .select()
+        .from(propertyImages)
+        .where(eq(propertyImages.propertyId, Number(id)))
+
+    return {
+        ...row.property,
+        mainImage: row.mainImage,
+        brand: row.brand,
+        images: allImages
+    }
+}
 
 // GET /properties
 export const getAllProperties = async (req, res) => {
     try {
-        const result = await db.select().from(properties)
-        return res.json(result)
+        const result = await db
+            .select({
+                property: properties,
+                mainImage: propertyImages.imagePath,
+                brand: brands
+            })
+            .from(properties)
+            .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
+            .leftJoin(brands, eq(properties.brandId, brands.id))
+
+        // Format the output to be cleaner
+        const formattedResult = result.map(row => ({
+            ...row.property,
+            mainImage: row.mainImage,
+            brand: row.brand
+        }))
+
+        return res.json(formattedResult)
     } catch (error) {
         console.error('getAllProperties error:', error)
         return res.status(500).json({ message: 'Internal server error' })
@@ -19,12 +65,8 @@ export const getAllProperties = async (req, res) => {
 export const getPropertyById = async (req, res) => {
     try {
         const { id } = req.params
-        const result = await db
-            .select()
-            .from(properties)
-            .where(eq(properties.id, Number(id)))
+        const property = await getPropertyByIdWithJoins(id)
 
-        const property = result[0]
         if (!property) {
             return res.status(404).json({ message: 'Property not found' })
         }
@@ -43,11 +85,24 @@ export const getMyProperties = async (req, res) => {
         }
 
         const result = await db
-            .select()
+            .select({
+                property: properties,
+                mainImage: propertyImages.imagePath,
+                brand: brands
+            })
             .from(properties)
+            .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
+            .leftJoin(brands, eq(properties.brandId, brands.id))
             .where(eq(properties.userId, Number(req.user.id)))
 
-        return res.json(result)
+        // Format the output to be cleaner
+        const formattedResult = result.map(row => ({
+            ...row.property,
+            mainImage: row.mainImage,
+            brand: row.brand
+        }))
+
+        return res.json(formattedResult)
     } catch (error) {
         console.error('getMyProperties error:', error)
         return res.status(500).json({ message: 'Internal server error' })
@@ -62,6 +117,20 @@ export const createProperty = async (req, res) => {
         }
 
         const body = { ...req.body }
+
+        // ปรับแต่งข้อมูลจาก multipart/form-data (ซึ่งเป็น string ทั้งหมด)
+        if (body.brandId) body.brandId = Number(body.brandId)
+        if (body.startingPrice) body.startingPrice = body.startingPrice.toString()
+        if (body.totalUnits) body.totalUnits = Number(body.totalUnits)
+        if (body.bedrooms) body.bedrooms = Number(body.bedrooms)
+        if (body.bathrooms) body.bathrooms = Number(body.bathrooms)
+        if (body.floor) body.floor = Number(body.floor)
+        if (body.condition) body.condition = Number(body.condition)
+
+        // Booleans
+        if (body.discountActive !== undefined) body.discountActive = body.discountActive === 'true' || body.discountActive === true
+        if (body.isActive !== undefined) body.isActive = body.isActive === 'true' || body.isActive === true
+
         if (body.availableDate) {
             const d = new Date(body.availableDate)
             body.availableDate = isNaN(d.getTime()) ? undefined : d
@@ -74,12 +143,9 @@ export const createProperty = async (req, res) => {
                 try {
                     body.amenities = JSON.parse(body.amenities)
                 } catch (e) {
-                    return res.status(400).json({ message: 'Invalid amenities JSON' })
+                    // ถ้า parse ไม่ได้ก็ปล่อยไปเป็น string (อาจเกิดจากไม่ได้ส่งมาเป็น JSON)
+                    console.warn('Cannot parse amenities as JSON, keeping it as is.')
                 }
-            }
-
-            if (!Array.isArray(body.amenities)) {
-                return res.status(400).json({ message: 'amenities must be an array' })
             }
         }
 
@@ -90,10 +156,40 @@ export const createProperty = async (req, res) => {
                 userId: Number(req.user.id),
             })
             .returning()
-        return res.status(201).json(created)
+
+        // จัดการรูปภาพ (ถ้ามีการส่งมา)
+        const files = req.files && req.files.length > 0
+            ? req.files
+            : req.file
+                ? [req.file]
+                : []
+
+        if (files.length > 0) {
+            const insertData = files.map((file, index) => ({
+                propertyId: created.id,
+                imagePath: file.path.replace(process.cwd() + path.sep, ''),
+                isMain: index === 0,
+            }))
+
+            const inserted = await db
+                .insert(propertyImages)
+                .values(insertData)
+                .returning()
+
+            // ตั้ง imageId ชี้ไปที่รูปแรก
+            const mainImg = inserted[0]
+            await db
+                .update(properties)
+                .set({ imageId: mainImg.id })
+                .where(eq(properties.id, created.id))
+        }
+
+        // Fetch again with joins for consistent output
+        const property = await getPropertyByIdWithJoins(created.id)
+        return res.status(201).json(property)
     } catch (error) {
         console.error('createProperty error:', error)
-        return res.status(500).json({ message: 'Internal server error' })
+        return res.status(500).json({ message: 'Internal server error', error: error.message })
     }
 }
 
@@ -147,9 +243,114 @@ export const updateProperty = async (req, res) => {
             .where(eq(properties.id, Number(id)))
             .returning()
 
-        return res.json(updated)
+        // Fetch again with joins for consistent output
+        const property = await getPropertyByIdWithJoins(updated.id)
+        return res.json(property)
     } catch (error) {
         console.error('updateProperty error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+
+// Middleware เพื่อโหลดชื่อโครงการจาก DB มาใส่ req.body.name (ใช้สำหรับหาโฟลเดอร์ในขั้นตอนอัปโหลด)
+export const loadPropertyName = async (req, res, next) => {
+    try {
+        const { id } = req.params
+        if (!id) return next()
+
+        // ถ้ามี name ใน body อยู่แล้วไม่ต้องโหลด (เช่น create หรือ update ชื่อใหม่)
+        if (req.body && req.body.name) return next()
+
+        const [existing] = await db
+            .select({ name: properties.name })
+            .from(properties)
+            .where(eq(properties.id, Number(id)))
+
+        if (existing) {
+            if (!req.body) req.body = {}
+            req.body.name = existing.name
+        }
+        next()
+    } catch (error) {
+        next()
+    }
+}
+
+// Middleware เพื่อโหลดชื่อโครงการโดยใช้ Image ID
+export const loadPropertyNameByImageId = async (req, res, next) => {
+    try {
+        const { imageId } = req.params
+        if (!imageId) return next()
+
+        const [existing] = await db
+            .select({ name: properties.name })
+            .from(propertyImages)
+            .innerJoin(properties, eq(propertyImages.propertyId, properties.id))
+            .where(eq(propertyImages.id, Number(imageId)))
+
+        if (existing) {
+            if (!req.body) req.body = {}
+            req.body.name = existing.name
+        }
+        next()
+    } catch (error) {
+        next()
+    }
+}
+
+// PUT /properties/images/:imageId
+export const updateImageById = async (req, res) => {
+    try {
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Unauthorized' })
+        }
+        const { imageId } = req.params
+        const file = req.file || (req.files && req.files[0])
+
+        if (!file) {
+            return res.status(400).json({ message: 'No image file found' })
+        }
+
+        // หาข้อมูลรูปเดิมและเจ้าของ
+        const [existingImage] = await db
+            .select({
+                image: propertyImages,
+                property: properties
+            })
+            .from(propertyImages)
+            .innerJoin(properties, eq(propertyImages.propertyId, properties.id))
+            .where(eq(propertyImages.id, Number(imageId)))
+
+        if (!existingImage) {
+            return res.status(404).json({ message: 'Image not found' })
+        }
+
+        if (existingImage.property.userId !== Number(req.user.id)) {
+            return res.status(403).json({ message: 'Forbidden: Not your property' })
+        }
+
+        // ลบรูปเก่าออก
+        const oldPath = path.resolve(process.cwd(), existingImage.image.imagePath)
+        fs.unlink(oldPath, (err) => {
+            if (err && err.code !== 'ENOENT') {
+                console.error('Failed to delete old image file:', err)
+            }
+        })
+
+        // อัปเดตข้อมูลใหม่
+        const newImagePath = file.path.replace(process.cwd() + path.sep, '')
+        const [updated] = await db
+            .update(propertyImages)
+            .set({
+                imagePath: newImagePath,
+                updatedAt: new Date()
+            })
+            .where(eq(propertyImages.id, Number(imageId)))
+            .returning()
+
+        return res.json(updated)
+    } catch (error) {
+        console.error('updateImageById error:', error)
         return res.status(500).json({ message: 'Internal server error' })
     }
 }
@@ -163,11 +364,21 @@ export const updatePropertyImage = async (req, res) => {
 
         const { id } = req.params
 
-        if (!req.file) {
-            return res.status(400).json({ message: 'Image file is required' })
+        // รวบรวมไฟล์ทั้งหมด (รองรับทั้ง req.file และ req.files)
+        const files = req.files && req.files.length > 0
+            ? req.files
+            : req.file
+                ? [req.file]
+                : []
+
+        if (files.length === 0) {
+            return res.status(400).json({
+                message: 'No image file found in the request',
+                hint: 'ส่งไฟล์ผ่าน form-data ด้วย key ชื่ออะไรก็ได้ (เช่น image)'
+            })
         }
 
-        // หา property เดิมเพื่อระบุ path รูปเก่า
+        // หา property เดิม
         const [existing] = await db
             .select()
             .from(properties)
@@ -181,23 +392,55 @@ export const updatePropertyImage = async (req, res) => {
             return res.status(403).json({ message: 'Forbidden: Not your property' })
         }
 
-        // ลบไฟล์รูปเก่าถ้ามี
-        if (existing.imagePath) {
-            const oldPath = path.resolve(process.cwd(), existing.imagePath)
+        // ยกเลิก imageId ของ property ก่อน (เพื่อไม่ให้ FK ติด)
+        await db
+            .update(properties)
+            .set({ imageId: null })
+            .where(eq(properties.id, Number(id)))
+
+        // ดึงรูปเก่าทั้งหมดของทรัพย์สินนี้
+        const oldImages = await db
+            .select()
+            .from(propertyImages)
+            .where(eq(propertyImages.propertyId, Number(id)))
+
+        // ลบไฟล์รูปเก่าออกจาก disk
+        for (const img of oldImages) {
+            const oldPath = path.resolve(process.cwd(), img.imagePath)
             fs.unlink(oldPath, (err) => {
                 if (err && err.code !== 'ENOENT') {
-                    console.error('Failed to delete old property image:', err)
+                    console.error('Failed to delete old image file:', err)
                 }
             })
         }
 
-        const [updated] = await db
-            .update(properties)
-            .set({ imagePath: req.file.path })
-            .where(eq(properties.id, Number(id)))
+        // ลบ record รูปเก่าทั้งหมดออกจาก database
+        await db
+            .delete(propertyImages)
+            .where(eq(propertyImages.propertyId, Number(id)))
+
+        // เตรียมข้อมูลสำหรับ insert ทุกไฟล์ — รูปแรกเป็น main
+        const insertData = files.map((file, index) => ({
+            propertyId: Number(id),
+            imagePath: file.path.replace(process.cwd() + path.sep, ''),
+            isMain: index === 0,
+        }))
+
+        const inserted = await db
+            .insert(propertyImages)
+            .values(insertData)
             .returning()
 
-        return res.json(updated)
+        // ตั้ง imageId ของ property ให้ชี้ไปที่รูป main (รูปแรก)
+        const mainImage = inserted[0]
+        await db
+            .update(properties)
+            .set({ imageId: mainImage.id })
+            .where(eq(properties.id, Number(id)))
+
+        // Fetch again with joins for consistent output
+        const property = await getPropertyByIdWithJoins(Number(id))
+        return res.json(property)
     } catch (error) {
         console.error('updatePropertyImage error:', error)
         return res.status(500).json({ message: 'Internal server error' })
@@ -227,8 +470,14 @@ export const deleteProperty = async (req, res) => {
             return res.status(403).json({ message: 'Forbidden: Not your property' })
         }
 
-        if (existing.imagePath) {
-            const oldPath = path.resolve(process.cwd(), existing.imagePath)
+        // ถ้าจะลบรูปแบบ cascade ก็ได้ แต่นี้ลบ manual
+        const pImages = await db
+            .select()
+            .from(propertyImages)
+            .where(eq(propertyImages.propertyId, Number(id)))
+
+        for (const img of pImages) {
+            const oldPath = path.resolve(process.cwd(), img.imagePath)
             fs.unlink(oldPath, (err) => {
                 if (err && err.code !== 'ENOENT') {
                     console.error('Failed to delete property image on delete:', err)
@@ -237,12 +486,52 @@ export const deleteProperty = async (req, res) => {
         }
 
         await db
+            .delete(propertyImages)
+            .where(eq(propertyImages.propertyId, Number(id)))
+
+        await db
             .delete(properties)
             .where(eq(properties.id, Number(id)))
 
         return res.json({ message: 'Property deleted' })
     } catch (error) {
         console.error('deleteProperty error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+
+// POST /properties/:id/images
+export const uploadPropertyImages = async (req, res) => {
+    try {
+        const { id } = req.params
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No images uploaded' })
+        }
+
+        // ตรวจว่าทรัพย์สินนี้เป็นของ user คนนี้จริงหรือไม่
+        const [existing] = await db
+            .select()
+            .from(properties)
+            .where(eq(properties.id, Number(id)))
+
+        if (!existing) {
+            return res.status(404).json({ message: 'Property not found' })
+        }
+
+        if (existing.userId !== Number(req.user.id)) {
+            return res.status(403).json({ message: 'Forbidden: Not your property' })
+        }
+
+        const insertData = req.files.map(file => ({
+            propertyId: Number(id),
+            imagePath: file.path.replace(process.cwd() + path.sep, ''), // Keep it relative
+            isMain: false,
+        }))
+
+        const inserted = await db.insert(propertyImages).values(insertData).returning()
+        return res.json(inserted)
+    } catch (error) {
+        console.error('uploadPropertyImages error:', error)
         return res.status(500).json({ message: 'Internal server error' })
     }
 }

@@ -1,9 +1,10 @@
 import 'dotenv/config'
+console.log('>>> BACKEND STARTING...');
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
+import morgan from 'morgan'
 import swaggerUi from 'swagger-ui-express'
-import { storage } from './middleware/upload.js'
 import { swaggerDocument } from './docs/swagger.js'
 import authRouter from './modules/auth/auth.routes.js'
 import { userRouter } from './modules/users/user.routes.js'
@@ -18,6 +19,10 @@ import uploadTestRouter from './modules/upload-test.routes.js'
 const PORT = 4000
 
 const app = express()
+
+// Middleware สำหรับ Log Request แบบละเอียดมาก (Apache style)
+app.use(morgan('dev'))
+
 app.use(cors({
     origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
     credentials: true,
@@ -56,6 +61,27 @@ app.use('/', favoritesRouter)
 
 // Membership Plans routes
 app.use('/', membershipPlansRouter)
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return res.status(400).json({
+                message: 'Unexpected field name for upload',
+                code: err.code,
+                foundField: err.field,
+                expectedField: 'image'
+            })
+        }
+        return res.status(400).json({ message: `Multer upload error: ${err.message}`, code: err.code })
+    }
+
+    console.error('Unhandled error:', err)
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err : undefined
+    })
+})
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)

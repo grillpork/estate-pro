@@ -5,6 +5,16 @@ export const propertyService = {
     const response = await api.post("/properties", data);
     return response.data;
   },
+  updatePropertyImage: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const response = await api.put(`/properties/${id}/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };
 
 export const myPropertiesService = async () => {
