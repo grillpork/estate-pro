@@ -470,25 +470,36 @@ export const deleteProperty = async (req, res) => {
             return res.status(403).json({ message: 'Forbidden: Not your property' })
         }
 
-        // ถ้าจะลบรูปแบบ cascade ก็ได้ แต่นี้ลบ manual
+        // 1. เคลียร์ imageId ก่อน เพื่อไม่ให้ FK ติด
+        await db
+            .update(properties)
+            .set({ imageId: null })
+            .where(eq(properties.id, Number(id)))
+
+        // 2. หารูปทั้งหมดของ property นี้
         const pImages = await db
             .select()
             .from(propertyImages)
             .where(eq(propertyImages.propertyId, Number(id)))
 
+        // 3. ลบไฟล์รูปออกจาก disk
         for (const img of pImages) {
-            const oldPath = path.resolve(process.cwd(), img.imagePath)
-            fs.unlink(oldPath, (err) => {
-                if (err && err.code !== 'ENOENT') {
-                    console.error('Failed to delete property image on delete:', err)
-                }
-            })
+            if (img.imagePath) {
+                const oldPath = path.resolve(process.cwd(), img.imagePath)
+                fs.unlink(oldPath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error('Failed to delete property image on delete:', err)
+                    }
+                })
+            }
         }
 
+        // 4. ลบ record รูปออกจาก database
         await db
             .delete(propertyImages)
             .where(eq(propertyImages.propertyId, Number(id)))
 
+        // 5. ลบ property
         await db
             .delete(properties)
             .where(eq(properties.id, Number(id)))

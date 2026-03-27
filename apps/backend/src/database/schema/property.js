@@ -2,6 +2,7 @@ import {
   boolean,
   integer,
   numeric,
+  pgEnum,
   pgTable,
   jsonb,
   text,
@@ -10,6 +11,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { brands } from "./brands.js";
 import { users } from "./user.js";
+
+export const occupancyEnum = pgEnum("occupancy", [
+  "VACANT",
+  "OCCUPIED",
+]);
+export const listingTypeEnum = pgEnum("listing_type", [
+  "SALES",
+  "RENT",
+  "SALE & RENT",
+]);
 
 export const properties = pgTable("properties", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -41,14 +52,14 @@ export const properties = pgTable("properties", {
   facing: varchar("facing", { length: 100 }),
   latitude: numeric("latitude", { precision: 18, scale: 10 }),
   longitude: numeric("longitude", { precision: 18, scale: 10 }),
-  occupancy: varchar("occupancy", { length: 50 }),
+  occupancy: occupancyEnum("occupancy"),
   ownerName: varchar("owner_name", { length: 255 }),
   ownerPhone: varchar("owner_phone", { length: 20 }),
   availableDate: timestamp("available_date", { withTimezone: false }),
   brandId: integer("brand_id").references(() => brands.id),
   userId: integer("user_id").references(() => users.id),
   amenities: jsonb("amenities"),
-  listingType: varchar("listing_type", { length: 50 }),
+  listingType: listingTypeEnum("listing_type"),
   discount: numeric("discount", { precision: 15, scale: 2 }),
   discountActive: boolean("discount_active").notNull().default(true),
   discountType: varchar("discount_type", { length: 10 }).notNull().default("BAHT"),

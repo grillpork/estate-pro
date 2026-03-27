@@ -169,7 +169,12 @@ export default function PropertyDetailPage() {
                     <HomeIcon className="w-5 h-5 text-amber-500" />
                     <div>
                       <p className="text-[10px] text-white/30 uppercase font-bold">ประเภท</p>
-                      <span className="font-bold">{property.listingType}</span>
+                      <span className="font-bold">
+                        {property.brand?.category === "CONDOMINIUM" ? "คอนโดมิเนียม" : 
+                         property.brand?.category === "DETACHED_HOUSE" ? "บ้านเดี่ยว" : 
+                         property.brand?.category === "TWIN_HOUSE" ? "บ้านแฝด" : 
+                         property.brand?.category === "TOWNHOME" ? "ทาวน์โฮม" : (property.brand?.category || '-')}
+                      </span>
                     </div>
                  </div>
               </div>
@@ -193,12 +198,16 @@ export default function PropertyDetailPage() {
                        <p className="text-2xl font-black">{property.bathrooms || '-'}</p>
                     </div>
                     <div className="space-y-1">
-                       <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">ที่จอดรถ</p>
+                       <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">ที่จอดรส</p>
                        <p className="text-2xl font-black">{property.parkingSpaces || '-'}</p>
                     </div>
                     <div className="space-y-1">
                        <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">สถานะ</p>
-                       <p className="text-lg font-black text-amber-500">{property.isActive ? 'เปิดขาย' : 'ปิดประกาศ'}</p>
+                       <p className="text-lg font-black text-amber-500">
+                          {property.listingType === 'SALES' ? 'เปิดขาย' : 
+                           property.listingType === 'RENT' ? 'ให้เช่า' : 
+                           property.listingType === 'SALE & RENT' ? 'ขายและเช่า' : (property.listingType || '-')}
+                       </p>
                     </div>
                  </div>
               </div>
