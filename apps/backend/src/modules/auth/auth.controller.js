@@ -61,6 +61,7 @@ export const login = async (req, res) => {
                 id: users.id,
                 email: users.email,
                 password: users.password,
+                username: users.username,
                 role: roles.name,
             })
             .from(users)
@@ -95,6 +96,12 @@ export const login = async (req, res) => {
         return res.status(200).json({
             message: 'Login successful',
             token,
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                role: user.role,
+            }
         })
     } catch (error) {
         console.error('Login error:', error)
@@ -128,7 +135,6 @@ export const addRole = async (req, res) => {
 export const getMe = async (req, res) => {
     try {
         const userId = req.user.id
-        console.log('Querying profile for userId:', userId)
         const result = await db
             .select({
                 id: users.id,
@@ -149,6 +155,18 @@ export const getMe = async (req, res) => {
         return res.json(result[0])
     } catch (error) {
         console.error('Get profile error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+
+export const heartbeat = async (req, res) => {
+    try {
+        if (!req.user?.id) return res.status(401).json({ message: 'Unauthorized' })
+        const userId = req.user.id
+        await db.update(users).set({ lastSeen: new Date() }).where(eq(users.id, userId))
+        return res.status(200).json({ success: true })
+    } catch (error) {
+        console.error('Heartbeat error:', error)
         return res.status(500).json({ message: 'Internal server error' })
     }
 }

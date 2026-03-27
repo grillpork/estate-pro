@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   roleId: integer("role_id").references(() => roles.id), // nullable: ป้องกัน data-loss บน rows เดิม
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastSeen: timestamp("last_seen"),
 });
 
 export const roles = pgTable("roles", {

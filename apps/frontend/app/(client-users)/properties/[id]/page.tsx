@@ -57,21 +57,17 @@ export default function PropertyDetailPage() {
       const res = await api.post("/conversations", {
         user1Id: user.id,
         user2Id: property.userId,
-        propertyId: property.id,
+        // propertyId: property.id, // นำออกเพื่อให้เป็น 1:1 แบบ IG (คุยคนเดิม ห้องเดิม)
       });
 
-      if (res.data) {
-        router.push(`/conversations/${res.data.id}`);
+      if (res.data && res.data.id) {
+        // เปลี่ยนไปใช้หน้า Messenger ใหม่ (Dual-Pane) พร้อมระบุ ID ใน URL
+        router.push(`/conversations?id=${res.data.id}`);
       }
     } catch (error: any) {
-        // หากคุยอยู่แล้ว หรือเปิดไปแล้ว ก็ให้พาไปหน้าแชทเลย
-        if (error.response?.status === 409 || error.response?.status === 400) {
-            // ค้นหาคลาสที่คุณอาจจะใช้ดึง conv เก่า
-            router.push('/conversations');
-        } else {
-            console.error("Failed to start chat:", error);
-            alert("ไม่สามารถเริ่มการแชทได้ในขณะนี้");
-        }
+        console.error("Failed to start chat:", error);
+        // Fallback: พาไปหน้าข้อความรวม
+        router.push('/conversations');
     }
   };
 

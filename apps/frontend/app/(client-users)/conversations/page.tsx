@@ -160,10 +160,27 @@ export default function MessengerPage() {
     } catch (e) { console.error("Delete error:", e); }
   };
 
+  // Heartbeat Effect
+  useEffect(() => {
+    if (!currentUser) return;
+    const heartbeat = () => api.post("/auth/heartbeat").catch(() => {});
+    heartbeat();
+    const interval = setInterval(heartbeat, 25000); // 25s
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
   // UI Helpers
   const getOtherUser = (conv: any) => {
     const otherId = conv.user1Id === currentUser?.id ? conv.user2Id : conv.user1Id;
     return otherId === 1 ? { username: 'แอดมิน / ทีมงาน', id: 1 } : availableUsers.find(u => u.id === otherId) || { username: `สมาชิก #${otherId}`, id: otherId };
+  };
+
+  const isOnline = (user: any) => {
+    if (!user || !user.lastSeen) return false;
+    const lastSeenDate = new Date(user.lastSeen);
+    const now = new Date();
+    // ถ้าขยับล่าสุดไม่เกิน 60 วินาที ถือว่าออนไลน์
+    return (now.getTime() - lastSeenDate.getTime()) < 60000;
   };
 
   return (
@@ -195,6 +212,8 @@ export default function MessengerPage() {
                 ) : conversations.map(conv => {
                   const other = getOtherUser(conv);
                   const isSelected = selectedId === conv.id.toString();
+                  const online = isOnline(other);
+
                   return (
                     <div 
                       key={conv.id}
@@ -204,14 +223,17 @@ export default function MessengerPage() {
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 overflow-hidden shadow-inner">
-                           {/* @ts-ignore */}
-                           {other.avatar ? <img className="w-full h-full object-cover" src={other.avatar} alt="v" /> : <User className={`w-6 h-6 ${isSelected ? 'text-black/40' : 'text-white/20'}`} />}
+                        <div className="relative">
+                           <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 overflow-hidden shadow-inner">
+                              {/* @ts-ignore */}
+                              {other.avatar || other.imagePath ? <img className="w-full h-full object-cover" src={other.avatar || `http://localhost:4000/${other.imagePath}`} alt="v" /> : <User className={`w-6 h-6 ${isSelected ? 'text-black/40' : 'text-white/20'}`} />}
+                           </div>
+                           {online && <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-[#111118]" />}
                         </div>
                         <div>
                           {/* @ts-ignore */}
                           <h3 className={`font-black text-sm tracking-tight ${isSelected ? 'text-black' : 'text-white/80'}`}>{other.username}</h3>
-                          <p className={`text-[10px] font-bold ${isSelected ? 'text-black/50' : 'text-white/20'}`}>คลิกเพื่ออ่าน</p>
+                          <p className={`text-[10px] font-bold ${isSelected ? 'text-black/50' : 'text-white/20'}`}>{online ? 'กำลังใช้งาน' : 'คลิกเพื่ออ่าน'}</p>
                         </div>
                       </div>
                       {!isSelected && (
@@ -230,22 +252,38 @@ export default function MessengerPage() {
                    <Users className="w-3 h-3" /> เอเจนต์ที่แนะนำ
                 </h2>
                 <div className="grid gap-2 px-1">
-                   {availableUsers.slice(0, 5).map(user => (
-                      <div key={user.id} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-all">
-                               <User className="w-5 h-5" />
-                            </div>
-                            <p className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">{user.username || `User #${user.id}`}</p>
-                         </div>
-                         <button 
-                            onClick={() => handleStartChat(user)}
-                            className="p-2 rounded-xl hover:bg-amber-500 hover:text-black transition-all"
-                         >
-                            {creating === user.id ? <RefreshCw className="w-3 h-3 animate-spin"/> : <Plus className="w-4 h-4" />}
-                         </button>
-                      </div>
-                   ))}
+                   {availableUsers
+                    .filter(user => {
+                      const hasChat = conversations.some(c => 
+                        (c.user1Id === currentUser?.id && c.user2Id === user.id) ||
+                        (c.user1Id === user.id && c.user2Id === currentUser?.id)
+                      );
+                      return !hasChat;
+                    })
+                    .slice(0, 8)
+                    .map(user => {
+                      const online = isOnline(user);
+                      return (
+                        <div key={user.id} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group">
+                          <div className="flex items-center gap-3">
+                             <div className="relative">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-all">
+                                   <User className="w-5 h-5" />
+                                </div>
+                                {online && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-[#111118]" />}
+                             </div>
+                             <p className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">{user.username || `User #${user.id}`}</p>
+                          </div>
+                          <button 
+                             onClick={() => handleStartChat(user)}
+                             className="p-2 rounded-xl hover:bg-amber-500 hover:text-black transition-all"
+                             title="เริ่มสนทนา"
+                          >
+                             {creating === user.id ? <RefreshCw className="w-3 h-3 animate-spin"/> : <Plus className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      );
+                    })}
                 </div>
              </div>
           </div>
@@ -267,9 +305,15 @@ export default function MessengerPage() {
                             {/* @ts-ignore */}
                             {getOtherUser(conversations.find(c => c.id.toString() === selectedId) || {}).username}
                          </h2>
-                         <div className="flex items-center gap-1.5 text-[10px] text-green-500 font-bold uppercase tracking-tighter">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> ออนไลน์
-                         </div>
+                         {isOnline(getOtherUser(conversations.find(c => c.id.toString() === selectedId) || {})) ? (
+                            <div className="flex items-center gap-1.5 text-[10px] text-green-500 font-bold uppercase tracking-tighter">
+                               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> ออนไลน์
+                            </div>
+                         ) : (
+                            <div className="flex items-center gap-1.5 text-[10px] text-white/20 font-bold uppercase tracking-tighter">
+                               <div className="w-1.5 h-1.5 rounded-full bg-white/10"></div> ออฟไลน์
+                            </div>
+                         )}
                       </div>
                    </div>
                 </div>
@@ -327,15 +371,9 @@ export default function MessengerPage() {
               </>
            ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-20 text-center opacity-20 group">
-                 <div className="w-32 h-32 rounded-[40px] bg-white/5 flex items-center justify-center mb-8 border border-white/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-700">
-                    <Bot className="w-16 h-16" />
-                 </div>
-                 <h3 className="text-2xl font-black tracking-tight mb-2">Messenger ของคุณ</h3>
-                 <p className="text-sm max-w-xs mx-auto">เลือกคนคุยเพื่อเริ่มแชทแบบ 1:1 ได้ทันทีครับ</p>
-                 <div className="mt-10 flex items-center gap-2 p-3 bg-white/5 rounded-2xl border border-white/5 animate-pulse">
-                    <Star className="w-3 h-3 text-amber-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Premium 1:1 Chat Experience</span>
-                 </div>
+                 
+                 <h3 className="text-2xl font-black tracking-tight mb-2">Messenger</h3>
+                 <p className="text-sm max-w-xs mx-auto">กรุณาเลือกคู่สนทนา</p>
               </div>
            )}
         </div>
