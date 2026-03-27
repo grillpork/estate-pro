@@ -5,3 +5,4 @@ export * from './landmark.js';
 export * from './conversations.js';
 export * from './favorites.js';
 export * from './membershipPlans.js';
+export * from './messages.js';

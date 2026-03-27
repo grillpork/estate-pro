@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building2, PlusCircle, Search, Menu, X } from "lucide-react";
+import { Home, Building2, PlusCircle, Search, Menu, X, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import UserBox from "./UserBox";
 
@@ -14,6 +14,7 @@ const Navbar = () => {
     { name: "หน้าแรก", href: "/", icon: Home },
     { name: "ประกาศขาย/เช่า", href: "/properties", icon: Building2 },
     { name: "ลงประกาศ", href: "/properties/create", icon: PlusCircle },
+    { name: "ข้อความ", href: "/conversations", icon: MessageSquare },
   ];
 
   const isActive = (path: string) => pathname === path;

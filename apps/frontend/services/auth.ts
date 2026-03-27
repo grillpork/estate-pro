@@ -17,6 +17,9 @@ export const authService = {
       const response = await api.post("/auth/login", credentials);
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
+        if (response.data.user) {
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+        }
         // Set cookie for middleware access
         document.cookie = `token=${response.data.token}; path=/; max-age=86400; SameSite=Lax`;
         return { success: true };

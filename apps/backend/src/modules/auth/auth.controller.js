@@ -7,7 +7,7 @@ import { users, roles } from '../../database/schema/index.js'
 // POST /auth/register
 export const register = async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password, username, firstName, lastName, phoneNumber } = req.body
 
         // 1. เช็ค format email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -25,13 +25,22 @@ export const register = async (req, res) => {
             return res.status(409).json({ message: 'Email already exists' })
         }
 
-        // 3. Hash password ก่อน save
+        // 3. หา role 'user' พื้นฐาน
+        const userRoles = await db.select().from(roles).where(eq(roles.name, 'user'))
+        const defaultRoleId = userRoles[0]?.id || null
+
+        // 4. Hash password ก่อน save
         const hashedPassword = await bcrypt.hash(password, 10)
 
-        // 4. INSERT ลง database
+        // 5. INSERT ลง database
         await db.insert(users).values({
             email,
             password: hashedPassword,
+            username: username || email.split('@')[0],
+            firstName,
+            lastName,
+            phoneNumber,
+            roleId: defaultRoleId,
         })
 
         return res.status(201).json({ message: 'Register successful' })
