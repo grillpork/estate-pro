@@ -1,11 +1,22 @@
-import { eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
 import { conversations } from '../../database/schema/index.js'
 
-/** GET /conversations */
+/** GET /conversations - ดึงเฉพาะห้องที่เกี่ยวข้องกับผู้ใช้ที่ล็อกอิน */
 export const getAllConversations = async (req, res) => {
   try {
-    const result = await db.select().from(conversations)
+    if (!req.user?.id) return res.status(401).json({ message: 'Unauthorized' })
+    const uid = Number(req.user.id)
+
+    const result = await db
+      .select()
+      .from(conversations)
+      .where(
+        or(
+          eq(conversations.user1Id, uid),
+          eq(conversations.user2Id, uid)
+        )
+      )
     return res.json(result)
   } catch (error) {
     console.error('getAllConversations error:', error)
@@ -13,7 +24,7 @@ export const getAllConversations = async (req, res) => {
   }
 }
 
-/** GET /conversations/:id */
+/** GET /conversations/:id - เช็คสิทธิ์ก่อนดึงข้อมูลห้อง */
 export const getConversationById = async (req, res) => {
   try {
     const { id } = req.params
@@ -25,6 +36,12 @@ export const getConversationById = async (req, res) => {
     if (!row) {
       return res.status(404).json({ message: 'Conversation not found' })
     }
+
+    // ตรวจสอบสิทธิ์ความเป็นส่วนตัว (Privacy Check)
+    if (!isParticipant(req, row)) {
+      return res.status(403).json({ message: 'Forbidden: you are not a participant of this conversation' })
+    }
+
     return res.json(row)
   } catch (error) {
     console.error('getConversationById error:', error)
@@ -35,7 +52,7 @@ export const getConversationById = async (req, res) => {
 function isParticipant(req, row) {
   if (!req.user?.id) return false
   const uid = Number(req.user.id)
-  return row.user1Id === uid || row.user2Id === uid
+  return Number(row.user1Id) === uid || Number(row.user2Id) === uid
 }
 
 /** POST /conversations — body: { user1Id, user2Id, propertyId? } */

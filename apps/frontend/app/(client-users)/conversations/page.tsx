@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 import Link from "next/link";
-import { MessageSquare, User, Calendar, ChevronRight, Users, Star, Plus } from "lucide-react";
+import { MessageSquare, User, Calendar, ChevronRight, Users, Star, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ConversationsListPage() {
@@ -98,6 +98,23 @@ export default function ConversationsListPage() {
     }
   };
 
+  const handleDeleteConversation = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm("คุณต้องการลบห้องสนทนานี้ใช่หรือไม่? ข้อความทั้งหมดจะถูกลบถาวร")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/conversations/${id}`);
+      setConversations(conversations.filter(c => c.id !== id));
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("ไม่สามารถลบห้องสนทนาได้ในขณะนี้");
+    }
+  };
+
   return (
     <div className="bg-[#0a0a0f] min-h-screen text-white pt-24 pb-12">
       <Navbar />
@@ -164,8 +181,17 @@ export default function ConversationsListPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-amber-500 transition-all duration-500 text-white/20 group-hover:text-black group-hover:translate-x-1">
-                       <ChevronRight className="w-6 h-6" />
+                    <div className="flex items-center gap-2">
+                       <button
+                         onClick={(e) => handleDeleteConversation(e, conv.id)}
+                         className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-red-500/20 text-white/10 hover:text-red-500 transition-all duration-300"
+                         title="ลบห้องสนทนา"
+                       >
+                         <Trash2 className="w-5 h-5" />
+                       </button>
+                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-amber-500 transition-all duration-500 text-white/20 group-hover:text-black group-hover:translate-x-1">
+                          <ChevronRight className="w-6 h-6" />
+                       </div>
                     </div>
                   </Link>
                 ))}
