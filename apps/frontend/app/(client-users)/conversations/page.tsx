@@ -1,35 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
-import Link from "next/link";
-import { MessageSquare, User, Calendar, ChevronRight, Users, Star, Plus, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { 
+  MessageSquare, User, Calendar, ChevronRight, Users, Star, Plus, 
+  Trash2, Send, ArrowLeft, RefreshCw, Bot, Info
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ConversationsListPage() {
+export default function MessengerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialId = searchParams.get('id');
+
+  // List States
   const [conversations, setConversations] = useState<any[]>([]);
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [creating, setCreating] = useState<number | null>(null);
 
+  // Chat Room States
+  const [selectedId, setSelectedId] = useState<string | null>(initialId);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch initial data (Conversations & Users)
   useEffect(() => {
     const initData = async () => {
       let user = null;
       const userStr = localStorage.getItem('user');
-      
       if (userStr) {
         try {
           user = JSON.parse(userStr);
           setCurrentUser(user);
-        } catch (e) {
-          console.error("Local storage user parse error");
-        }
+        } catch (e) { console.error("User parse error"); }
       }
 
-      // Fallback: หากใน localStorage ไม่มี หรือข้อมูลไม่ครบ ให้ลองดึงข้อมูลจาก /auth/me
       if (!user) {
         try {
           const meRes = await api.get("/auth/me");
@@ -39,7 +49,9 @@ export default function ConversationsListPage() {
             localStorage.setItem('user', JSON.stringify(user));
           }
         } catch (e) {
-          console.warn("User is truly not logged in");
+          alert("กรุณาเข้าสู่ระบบก่อนใช้งานครับ");
+          router.push("/auth/sign-in");
+          return;
         }
       }
 
@@ -51,7 +63,7 @@ export default function ConversationsListPage() {
         setConversations(convRes.data || []);
         setAvailableUsers((userRes.data || []).filter((u: any) => u.id !== user?.id));
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Fetch data error:", error);
       } finally {
         setLoading(false);
       }
@@ -59,204 +71,283 @@ export default function ConversationsListPage() {
     initData();
   }, []);
 
-  const handleStartChat = async (targetUser: any) => {
-    if (!currentUser) {
-        alert("กรุณาเข้าสู่ระบบก่อนเริ่มการสนทนาครับ");
-        router.push("/auth/sign-in");
+  // Fetch messages when selectedId changes
+  useEffect(() => {
+    if (!selectedId) {
+        setMessages([]);
         return;
     }
 
+    const fetchMessages = async () => {
+      try {
+        if (!messagesLoading && messages.length === 0) setMessagesLoading(true);
+        const res = await api.get(`/conversations/${selectedId}/messages`);
+        setMessages(res.data || []);
+      } catch (e) {
+        console.error("Fetch messages error:", e);
+      } finally {
+        setMessagesLoading(false);
+      }
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 3000); // Polling
+    return () => clearInterval(interval);
+  }, [selectedId]);
+
+  // Auto Scroll to bottom
+  const scrollToBottom = (behavior: "auto" | "smooth" = "smooth") => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      const timer = setTimeout(() => scrollToBottom("smooth"), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
+
+  const handleStartChat = async (targetUser: any) => {
+    if (!currentUser) return;
     setCreating(targetUser.id);
     try {
-      // 1. เช็คก่อนว่ามีห้องแชทกับคนนี้อยู่แล้วไหม (เพื่อความไว)
-      const existing = conversations.find(c => 
-        (c.user1Id === currentUser.id && c.user2Id === targetUser.id) ||
-        (c.user1Id === targetUser.id && c.user2Id === currentUser.id)
-      );
-
-      if (existing) {
-        router.push(`/conversations/${existing.id}`);
-        return;
-      }
-
-      // 2. ถ้าไม่มี ค่อยสร้างใหม่
       const res = await api.post("/conversations", {
         user1Id: currentUser.id,
         user2Id: targetUser.id,
       });
-
-      if (res.data && res.data.id) {
-        router.push(`/conversations/${res.data.id}`);
-      } else {
-        throw new Error("Invalid response from server");
+      if (res.data) {
+        setSelectedId(res.data.id.toString());
+        // Refresh list
+        const convRes = await api.get("/conversations");
+        setConversations(convRes.data);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Start chat error:", error);
-      alert("เกิดข้อผิดพลาดในการสร้างห้องแชท กรุณาลองใหม่อีกครั้งครับ");
     } finally {
       setCreating(null);
     }
   };
 
-  const handleDeleteConversation = async (e: React.MouseEvent, id: number) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    if (!confirm("คุณต้องการลบห้องสนทนานี้ใช่หรือไม่? ข้อความทั้งหมดจะถูกลบถาวร")) {
-      return;
-    }
+    if (!newMessage.trim() || !selectedId) return;
 
     try {
-      await api.delete(`/conversations/${id}`);
-      setConversations(conversations.filter(c => c.id !== id));
+      const response = await api.post(`/conversations/${selectedId}/messages`, {
+        content: newMessage,
+      });
+      setMessages([...messages, response.data]);
+      setNewMessage("");
+      setTimeout(() => scrollToBottom("smooth"), 50);
     } catch (error) {
-      console.error("Delete error:", error);
-      alert("ไม่สามารถลบห้องสนทนาได้ในขณะนี้");
+      console.error("Send error:", error);
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("ลบห้องสนทนานี้ถาวร?")) return;
+    try {
+      await api.delete(`/conversations/${id}`);
+      setConversations(conversations.filter(c => c.id.toString() !== id));
+      if (selectedId === id) setSelectedId(null);
+    } catch (e) { console.error("Delete error:", e); }
+  };
+
+  // UI Helpers
+  const getOtherUser = (conv: any) => {
+    const otherId = conv.user1Id === currentUser?.id ? conv.user2Id : conv.user1Id;
+    return otherId === 1 ? { username: 'แอดมิน / ทีมงาน', id: 1 } : availableUsers.find(u => u.id === otherId) || { username: `สมาชิก #${otherId}`, id: otherId };
+  };
+
   return (
-    <div className="bg-[#0a0a0f] min-h-screen text-white pt-24 pb-12">
+    <div className="bg-[#0a0a0f] h-screen flex flex-col text-white pt-16 overflow-hidden">
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-xl shadow-amber-500/5">
-              <MessageSquare className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-black tracking-tight">ข้อความ</h1>
-              <p className="text-white/40 text-sm font-medium">จัดการการสนทนาและเอเจนต์ของคุณ</p>
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main List: Existing Conversations */}
-          <div className="lg:col-span-8 space-y-6">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500/80 mb-6 flex items-center gap-2">
-               <span className="w-6 h-px bg-amber-500/20"></span>
-               การสนทนาล่าสุด
-            </h2>
-
-            {loading ? (
-              <div className="flex justify-center p-20">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-amber-500"></div>
-              </div>
-            ) : conversations.length === 0 ? (
-              <div className="bg-[#111118] border border-white/5 rounded-[40px] p-20 text-center relative overflow-hidden group">
-                <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                <MessageSquare className="w-16 h-16 text-white/5 mx-auto mb-6 transition-transform group-hover:scale-110 duration-500" />
-                <h3 className="text-xl font-bold mb-2">ยังไม่มีประวัติการคุย</h3>
-                <p className="text-white/30 max-w-xs mx-auto text-sm leading-relaxed">
-                  เลือกผู้ติดต่อจากรายการเอเจนต์ที่แนะนำด้านขวาเพื่อเริ่มคุยได้เลยครับ
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {conversations.map((conv) => (
-                  <Link
-                    key={conv.id}
-                    href={`/conversations/${conv.id}`}
-                    className="group flex items-center justify-between bg-[#111118]/40 hover:bg-[#111118] border border-white/5 hover:border-amber-500/40 rounded-[32px] p-6 transition-all duration-500"
-                  >
-                    <div className="flex items-center gap-5">
-                      <div className="w-16 h-16 rounded-[20px] bg-white/5 flex items-center justify-center text-white/20 group-hover:bg-amber-500 group-hover:text-black transition-all duration-500 shadow-lg">
-                        <User className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold group-hover:text-white transition-colors">
-                          {conv.user2Id === 1 ? 'ระบบ / แอดมิน' : `แชทกับผู้ใช้ #${conv.user1Id === currentUser?.id ? conv.user2Id : conv.user1Id}`}
-                        </h3>
-                        <div className="flex items-center gap-4 text-white/30 text-[10px] mt-2 uppercase font-black tracking-widest leading-none">
-                          <span className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg">
-                            <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                            {new Date(conv.createdAt).toLocaleDateString('th-TH')}
-                          </span>
-                          {conv.propertyId && (
-                             <span className="bg-amber-500/10 text-amber-500 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                                PROPERTY #{conv.propertyId}
-                             </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                       <button
-                         onClick={(e) => handleDeleteConversation(e, conv.id)}
-                         className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-red-500/20 text-white/10 hover:text-red-500 transition-all duration-300"
-                         title="ลบห้องสนทนา"
-                       >
-                         <Trash2 className="w-5 h-5" />
-                       </button>
-                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-amber-500 transition-all duration-500 text-white/20 group-hover:text-black group-hover:translate-x-1">
-                          <ChevronRight className="w-6 h-6" />
-                       </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+      <div className="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden divide-x divide-white/5">
+        
+        {/* Sidebar: Conversations & Agents */}
+        <div className={`flex-col bg-[#111118]/20 w-full sm:w-80 lg:w-[380px] ${selectedId ? 'hidden sm:flex' : 'flex'}`}>
+          <div className="p-6 border-b border-white/5">
+             <h1 className="text-2xl font-black tracking-tight mb-2">ข้อความ</h1>
+             <p className="text-white/30 text-xs font-medium uppercase tracking-widest"> Direct Messages </p>
           </div>
 
-          {/* Sidebar: New Chat / People */}
-          <div className="lg:col-span-4 space-y-6">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-6 flex items-center gap-2">
-               <Users className="w-3.5 h-3.5" />
-               เอเจนต์แนะนำ
-            </h2>
-
-            <div className="bg-[#111118]/80 backdrop-blur-xl border border-white/5 rounded-[40px] p-8 space-y-5 shadow-2xl">
-               {availableUsers.length === 0 ? (
-                  <p className="text-center py-12 text-white/20 text-[10px] font-black uppercase tracking-[0.2em] italic">
-                     - ไม่พบรายชื่อผู้ใช้ -
-                  </p>
-               ) : availableUsers.map((user: any) => (
-                  <div key={user.id} className="flex items-center justify-between p-5 rounded-[28px] bg-white/5 hover:bg-white/10 border border-white/5 transition-all duration-300 group">
-                     <div className="flex items-center gap-4">
-                        <div className="relative">
-                          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-all duration-500">
-                             <User className="w-6 h-6" />
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-4 border-[#111118]" />
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-8 pb-10">
+             
+             {/* Section: Chats */}
+             <div className="space-y-4">
+                <h2 className="px-3 text-[10px] font-black uppercase text-amber-500/60 tracking-[0.2em] flex items-center gap-2">
+                   <MessageSquare className="w-3 h-3" /> แชทล่าสุด
+                </h2>
+                {loading ? (
+                  <div className="p-10 text-center"><RefreshCw className="w-6 h-6 animate-spin mx-auto text-white/10" /></div>
+                ) : conversations.length === 0 ? (
+                  <div className="p-6 text-center bg-white/5 rounded-3xl mx-3">
+                     <p className="text-xs text-white/20">ยังไม่มีการสนทนา</p>
+                  </div>
+                ) : conversations.map(conv => {
+                  const other = getOtherUser(conv);
+                  const isSelected = selectedId === conv.id.toString();
+                  return (
+                    <div 
+                      key={conv.id}
+                      onClick={() => setSelectedId(conv.id.toString())}
+                      className={`group relative flex items-center justify-between p-4 rounded-3xl cursor-pointer transition-all duration-300 ${
+                        isSelected ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/10' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 overflow-hidden shadow-inner">
+                           {/* @ts-ignore */}
+                           {other.avatar ? <img className="w-full h-full object-cover" src={other.avatar} alt="v" /> : <User className={`w-6 h-6 ${isSelected ? 'text-black/40' : 'text-white/20'}`} />}
                         </div>
                         <div>
-                           <p className="text-sm font-black text-white group-hover:text-amber-400 transition-colors line-clamp-1">{user.username || `Agent #${user.id}`}</p>
-                           <p className="text-[10px] text-white/20 uppercase font-bold tracking-tighter mt-0.5">ออนไลน์ตลอดเวลา</p>
+                          {/* @ts-ignore */}
+                          <h3 className={`font-black text-sm tracking-tight ${isSelected ? 'text-black' : 'text-white/80'}`}>{other.username}</h3>
+                          <p className={`text-[10px] font-bold ${isSelected ? 'text-black/50' : 'text-white/20'}`}>คลิกเพื่ออ่าน</p>
                         </div>
-                     </div>
-                     <button
-                        onClick={() => handleStartChat(user)}
-                        disabled={creating !== null}
-                        className={`p-3 rounded-2xl transition-all active:scale-90 shadow-xl ${
-                          creating === user.id 
-                            ? 'bg-amber-500 text-black animate-pulse' 
-                            : 'bg-white/5 hover:bg-amber-500 text-white/40 hover:text-black'
-                        }`}
-                     >
-                        {creating === user.id ? (
-                           <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                           <Plus className="w-5 h-5" />
-                        )}
-                     </button>
-                  </div>
-               ))}
-               
-               <div className="pt-6 mt-6 border-t border-white/5">
-                  <div className="p-5 rounded-[24px] bg-amber-500/5 border border-amber-500/10 flex items-start gap-4">
-                     <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                        <Star className="w-4 h-4 text-amber-500" />
-                     </div>
-                     <p className="text-[11px] text-amber-500/70 font-medium leading-relaxed">
-                        ทิป: การเริ่มต้นสนทนาด้วยรายละเอียดที่ครบถ้วน จะช่วยให้เอเจนต์บริการคุณได้รวดเร็วขึ้น
-                     </p>
-                  </div>
-               </div>
-            </div>
+                      </div>
+                      {!isSelected && (
+                         <button onClick={(e) => handleDelete(e, conv.id.toString())} className="p-2 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all">
+                            <Trash2 className="w-4 h-4" />
+                         </button>
+                      )}
+                    </div>
+                  );
+                })}
+             </div>
+
+             {/* Section: Recommended Agents */}
+             <div className="space-y-4">
+                <h2 className="px-3 text-[10px] font-black uppercase text-white/30 tracking-[0.2em] flex items-center gap-2">
+                   <Users className="w-3 h-3" /> เอเจนต์ที่แนะนำ
+                </h2>
+                <div className="grid gap-2 px-1">
+                   {availableUsers.slice(0, 5).map(user => (
+                      <div key={user.id} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-all">
+                               <User className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">{user.username || `User #${user.id}`}</p>
+                         </div>
+                         <button 
+                            onClick={() => handleStartChat(user)}
+                            className="p-2 rounded-xl hover:bg-amber-500 hover:text-black transition-all"
+                         >
+                            {creating === user.id ? <RefreshCw className="w-3 h-3 animate-spin"/> : <Plus className="w-4 h-4" />}
+                         </button>
+                      </div>
+                   ))}
+                </div>
+             </div>
           </div>
         </div>
+
+        {/* Chat Area */}
+        <div className={`flex-1 flex flex-col bg-[#0a0a0f] relative ${!selectedId ? 'hidden sm:flex' : 'flex'}`}>
+           {selectedId ? (
+              <>
+                {/* Chat Header */}
+                <div className="h-20 border-b border-white/5 flex items-center justify-between px-6 bg-[#111118]/20 backdrop-blur-xl shrink-0">
+                   <div className="flex items-center gap-4">
+                      <button onClick={() => setSelectedId(null)} className="sm:hidden p-2 bg-white/5 rounded-xl"><ArrowLeft className="w-5 h-5"/></button>
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/5">
+                         <User className="w-6 h-6" />
+                      </div>
+                      <div>
+                         <h2 className="font-black text-lg tracking-tight">
+                            {/* @ts-ignore */}
+                            {getOtherUser(conversations.find(c => c.id.toString() === selectedId) || {}).username}
+                         </h2>
+                         <div className="flex items-center gap-1.5 text-[10px] text-green-500 font-bold uppercase tracking-tighter">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> ออนไลน์
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Messages Container */}
+                <div 
+                  ref={scrollRef}
+                  className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-[url('/grid-dark.png')] bg-repeat"
+                >
+                   {messagesLoading ? (
+                      <div className="flex justify-center p-20 text-white/5"><RefreshCw className="w-10 h-10 animate-spin" /></div>
+                   ) : messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-white/10 space-y-4">
+                         <MessageSquare className="w-16 h-16 opacity-50" />
+                         <p className="text-sm font-black uppercase tracking-widest"> เริ่มส่งข้อความแรกของคุณ </p>
+                      </div>
+                   ) : messages.map((msg, idx) => {
+                      const isMe = msg.senderId === currentUser?.id;
+                      return (
+                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                           <div className={`max-w-[75%] p-4 rounded-[28px] shadow-2xl transition-all hover:scale-[1.02] ${
+                              isMe ? 'bg-amber-500 text-black font-bold rounded-tr-none' : 'bg-[#111118] border border-white/5 text-white/90 rounded-tl-none'
+                           }`}>
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                              <p className={`text-[9px] mt-2 opacity-30 ${isMe ? 'text-black' : 'text-white'}`}>
+                                {new Date(msg.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                           </div>
+                        </div>
+                      )
+                   })}
+                </div>
+
+                {/* Input Area */}
+                <div className="p-6 bg-[#111118]/40 border-t border-white/5 shrink-0">
+                   <form onSubmit={handleSend} className="flex gap-4">
+                      <div className="flex-1 relative">
+                        <input 
+                           type="text" 
+                           value={newMessage}
+                           onChange={e => setNewMessage(e.target.value)}
+                           className="w-full bg-white/5 border border-white/10 focus:border-amber-500/50 rounded-2xl px-6 py-4 text-sm outline-none transition-all pr-12"
+                           placeholder="Type a message..."
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10"><MessageSquare className="w-5 h-5" /></div>
+                      </div>
+                      <button 
+                         type="submit"
+                         className="bg-amber-500 hover:bg-amber-400 text-black w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl shadow-amber-500/20 active:scale-90"
+                      >
+                         <Send className="w-6 h-6" />
+                      </button>
+                   </form>
+                </div>
+              </>
+           ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-20 text-center opacity-20 group">
+                 <div className="w-32 h-32 rounded-[40px] bg-white/5 flex items-center justify-center mb-8 border border-white/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-700">
+                    <Bot className="w-16 h-16" />
+                 </div>
+                 <h3 className="text-2xl font-black tracking-tight mb-2">Messenger ของคุณ</h3>
+                 <p className="text-sm max-w-xs mx-auto">เลือกคนคุยเพื่อเริ่มแชทแบบ 1:1 ได้ทันทีครับ</p>
+                 <div className="mt-10 flex items-center gap-2 p-3 bg-white/5 rounded-2xl border border-white/5 animate-pulse">
+                    <Star className="w-3 h-3 text-amber-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Premium 1:1 Chat Experience</span>
+                 </div>
+              </div>
+           )}
+        </div>
+
       </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.1); }
+      `}</style>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { eq, or } from 'drizzle-orm'
+import { eq, or, and } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
 import { conversations } from '../../database/schema/index.js'
 
@@ -81,6 +81,27 @@ export const createConversation = async (req, res) => {
       if (uid !== u1 && uid !== u2) {
         return res.status(403).json({ message: 'Forbidden: you must be user1 or user2' })
       }
+    }
+
+    // 🔍 ค้นหาห้องแชทเดิมที่มีอยู่แล้ว (1:1 Persistent like IG)
+    const [existing] = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(
+        or(
+          and(
+            eq(conversations.user1Id, u1),
+            eq(conversations.user2Id, u2)
+          ),
+          and(
+            eq(conversations.user1Id, u2),
+            eq(conversations.user2Id, u1)
+          )
+        )
+      )
+
+    if (existing) {
+      return res.json(existing)
     }
 
     const now = new Date()

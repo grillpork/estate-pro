@@ -49,9 +49,20 @@ export default function ChatRoomPage() {
     return () => clearInterval(interval);
   }, [id]);
 
-  useEffect(() => {
+  const scrollToBottom = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      // ใช้ setTimeout สั้นๆ เพื่อให้มั่นใจว่า DOM เรนเดอร์เสร็จแล้ว
+      const timer = setTimeout(scrollToBottom, 50);
+      return () => clearTimeout(timer);
     }
   }, [messages]);
 
@@ -65,6 +76,8 @@ export default function ChatRoomPage() {
       });
       setMessages([...messages, response.data]);
       setNewMessage("");
+      // เลื่อนลงทันทีเมื่อส่งเอง
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error("Failed to send message:", error);
     }
