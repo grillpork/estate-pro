@@ -625,7 +625,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                 className="bg-[#111118] p-8 rounded-2xl border border-white/5 space-y-6"
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                  <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
                     <Key size={18} />
                   </div>
                   <h2 className="text-lg font-bold text-white">ข้อมูลราคาขาย</h2>
@@ -641,7 +641,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("startingPrice", { required: watchListingType !== "RENT" ? "กรุณากรอกราคา" : false })}
                         placeholder="เช่น 1,000,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-blue-500"
+                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                       {errors.startingPrice && <p className="text-red-500 text-xs mt-1">{errors.startingPrice.message}</p>}
                     </div>
@@ -653,7 +653,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("estimatedInstallment")}
                         placeholder="เช่น 15,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-blue-500"
+                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -666,7 +666,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" {...register("discountActive")} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                       </label>
                     </div>
 
@@ -697,7 +697,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                               type="number"
                               {...register("discount")}
                               placeholder="เช่น 50000 หรือ 5"
-                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-blue-500"
+                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
                         </motion.div>
@@ -719,7 +719,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                 className="bg-[#111118] p-8 rounded-2xl border border-white/5 space-y-6"
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                  <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
                     <Building2 size={18} />
                   </div>
                   <h2 className="text-lg font-bold text-white">ข้อมูลค่าเช่า</h2>
@@ -735,7 +735,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("rentPrice", { required: watchListingType !== "SALES" ? "กรุณากรอกค่าเช่า" : false })}
                         placeholder="เช่น 15,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-emerald-500"
+                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                       {errors.rentPrice && <p className="text-red-500 text-xs mt-1">{errors.rentPrice.message}</p>}
                     </div>
@@ -747,7 +747,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("rentNetTotal")}
                         placeholder="เช่น 14,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-emerald-500"
+                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -760,7 +760,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" {...register("rentDiscountActive")} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                       </label>
                     </div>
 
@@ -791,7 +791,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                               type="number"
                               {...register("rentDiscount")}
                               placeholder="เช่น 1000 หรือ 5"
-                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-emerald-500"
+                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
                         </motion.div>
