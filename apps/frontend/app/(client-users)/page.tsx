@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Search, Building2, Home, MapPin, TrendingUp, ShieldCheck, Zap, ArrowRight } from "lucide-react";
+import StartChatEmptyState from "@/components/StartChatEmptyState";
 
 type Property = {
   id: string;
@@ -14,7 +15,7 @@ type Property = {
 
 async function getProperties(): Promise<Property[]> {
   try {
-    const res = await fetch("http://localhost:4000/properties", {
+    const res = await fetch("http://127.0.0.1:4000/properties", {
       cache: "no-store",
     });
 
@@ -24,7 +25,21 @@ async function getProperties(): Promise<Property[]> {
     }
 
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    
+    // Mapping backend data to frontend model
+    if (Array.isArray(data)) {
+        return data.map((p: any) => ({
+            id: p.id.toString(),
+            title: p.name || "โครงการคุณภาพ",
+            description: p.description,
+            floor: p.floor?.toString() || "-",
+            price: Number(p.startingPrice) || 0,
+            address: [p.district, p.province].filter(Boolean).join(", ") || "กรุงเทพมหานคร",
+            image: p.mainImage ? `http://localhost:4000/${p.mainImage}` : null,
+            category: p.listingType
+        }));
+    }
+    return [];
   } catch (error) {
     console.error("Fetch failed:", error);
     return [];
@@ -149,20 +164,7 @@ export default async function HomePage() {
               </div>
             ))
           ) : (
-             /* Skeleton Cards if empty for demo */
-             [1,2,3].map(i => (
-               <div key={i} className="bg-[#111118] border border-white/5 rounded-2xl h-[400px] animate-pulse relative overflow-hidden">
-                 <div className="w-full h-[200px] bg-white/5" />
-                 <div className="p-5 space-y-4">
-                   <div className="h-6 w-3/4 bg-white/5 rounded" />
-                   <div className="h-4 w-1/2 bg-white/5 rounded" />
-                   <div className="space-y-2">
-                     <div className="h-4 w-full bg-white/5 rounded" />
-                     <div className="h-4 w-full bg-white/5 rounded" />
-                   </div>
-                 </div>
-               </div>
-             ))
+             <StartChatEmptyState />
           )}
         </div>
       </section>
