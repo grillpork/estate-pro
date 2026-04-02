@@ -1,4 +1,4 @@
-import { Pool } from "@neondatabase/serverless"
+import { Pool, neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-serverless";
 import dotenv from "dotenv";
 
@@ -9,4 +9,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-export const db = drizzle(pool); // now db exposes ORM methods such as select(), insert(), etc.
+export const db = drizzle(pool);
+
+// Neon HTTP client สำหรับ Raw SQL (ใช้ template literal: sql`SELECT ...`)
+export const sql = neon(process.env.DATABASE_URL);

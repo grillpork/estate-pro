@@ -1,16 +1,14 @@
-import { eq, and, or, asc } from 'drizzle-orm'
-import { db } from '../../database/db.js'
-import { messages, conversations } from '../../database/schema/index.js'
+import { sql } from '../../database/schema/db.js'
 
 // GET /conversations/:id/messages
 export const getMessagesByConversation = async (req, res) => {
     try {
         const { id } = req.params
-        const result = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.conversationId, parseInt(id)))
-            .orderBy(asc(messages.createdAt))
+        const result = await sql`
+            SELECT * FROM messages
+            WHERE conversation_id = ${parseInt(id)}
+            ORDER BY created_at ASC
+        `
 
         return res.status(200).json(result)
     } catch (error) {
@@ -26,11 +24,11 @@ export const sendMessage = async (req, res) => {
         const { content } = req.body
         const senderId = req.user.id
 
-        const result = await db.insert(messages).values({
-            conversationId: parseInt(id),
-            senderId,
-            content,
-        }).returning()
+        const result = await sql`
+            INSERT INTO messages (conversation_id, sender_id, content)
+            VALUES (${parseInt(id)}, ${senderId}, ${content})
+            RETURNING *
+        `
 
         return res.status(201).json(result[0])
     } catch (error) {
@@ -44,12 +42,15 @@ export const receiveWebhookMessage = async (req, res) => {
     try {
         const { conversationId, senderId, content } = req.body
 
-        // ในอนาคตคุณสามารถเพิ่ม Logic เช็ค signature หรือ validate data จาก LINE/FB ตรงนี้ได้ครับ
-        const result = await db.insert(messages).values({
-            conversationId: parseInt(conversationId),
-            senderId: senderId ? parseInt(senderId) : null,
-            content,
-        }).returning()
+        const result = await sql`
+            INSERT INTO messages (conversation_id, sender_id, content)
+            VALUES (
+                ${parseInt(conversationId)},
+                ${senderId ? parseInt(senderId) : null},
+                ${content}
+            )
+            RETURNING *
+        `
 
         return res.status(200).json({
             status: 'success',
