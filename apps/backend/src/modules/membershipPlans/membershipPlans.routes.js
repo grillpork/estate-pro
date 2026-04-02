@@ -7,10 +7,11 @@ import {
   updateMembershipPlan,
 } from './membershipPlans.controller.js'
 import { verifyToken } from '../../middleware/auth.middleware.js'
+import { requireAdmin } from '../../middleware/requireAdmin.middleware.js'
 
 export const membershipPlansRouter = express.Router()
   .get('/membership-plans', getAllMembershipPlans)
   .get('/membership-plans/:id', getMembershipPlanById)
-  .post('/membership-plans', verifyToken, createMembershipPlan)
-  .put('/membership-plans/:id', verifyToken, updateMembershipPlan)
-  .delete('/membership-plans/:id', verifyToken, deleteMembershipPlan)
+  .post('/membership-plans', verifyToken, requireAdmin, createMembershipPlan)
+  .put('/membership-plans/:id', verifyToken, requireAdmin, updateMembershipPlan)
+  .delete('/membership-plans/:id', verifyToken, requireAdmin, deleteMembershipPlan)

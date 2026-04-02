@@ -14,6 +14,7 @@ import { landmarkRouter } from './modules/landmarks/landmark.routes.js'
 import { conversationsRouter } from './modules/conversations/conversations.routes.js'
 import { favoritesRouter } from './modules/favorites/favorites.routes.js'
 import { membershipPlansRouter } from './modules/membershipPlans/membershipPlans.routes.js'
+import { userSubscriptionsRouter } from './modules/userSubscriptions/userSubscriptions.routes.js'
 import uploadTestRouter from './modules/upload-test.routes.js'
 
 const PORT = 4000
@@ -61,6 +62,9 @@ app.use('/', favoritesRouter)
 
 // Membership Plans routes
 app.use('/', membershipPlansRouter)
+
+// User Subscriptions routes
+app.use('/', userSubscriptionsRouter)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

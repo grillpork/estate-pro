@@ -19,6 +19,8 @@ export const swaggerDocument = {
         { name: 'Brands' },
         { name: 'Landmarks' },
         { name: 'Uploads' },
+        { name: 'MembershipPlans' },
+        { name: 'UserSubscriptions' },
     ],
     components: {
         securitySchemes: {
@@ -118,6 +120,62 @@ export const swaggerDocument = {
                         type: 'array',
                         items: { $ref: '#/components/schemas/Landmark' },
                     },
+                },
+            },
+            MembershipPlan: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer' },
+                    name: { type: 'string' },
+                    description: { type: 'string' },
+                    priceMonthly: { type: 'number' },
+                    priceYearly: { type: 'number' },
+                    maxListings: { type: 'integer' },
+                    canChat: { type: 'boolean' },
+                    canViewOwnerContact: { type: 'boolean' },
+                    isActive: { type: 'boolean' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    updatedAt: { type: 'string', format: 'date-time' },
+                },
+            },
+            MembershipPlanRequest: {
+                type: 'object',
+                required: ['name'],
+                properties: {
+                    name: { type: 'string', example: 'Pro' },
+                    description: { type: 'string' },
+                    priceMonthly: { type: 'number', example: 299 },
+                    priceYearly: { type: 'number', example: 2990 },
+                    maxListings: { type: 'integer', example: 50 },
+                    canChat: { type: 'boolean', example: true },
+                    canViewOwnerContact: { type: 'boolean', example: true },
+                    isActive: { type: 'boolean', example: true },
+                },
+            },
+            UserSubscription: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer' },
+                    userId: { type: 'integer' },
+                    planId: { type: 'integer' },
+                    billingCycle: { type: 'string', enum: ['monthly', 'yearly'] },
+                    startDate: { type: 'string', format: 'date-time' },
+                    endDate: { type: 'string', format: 'date-time' },
+                    status: { type: 'string', example: 'active' },
+                    autoRenew: { type: 'boolean' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    updatedAt: { type: 'string', format: 'date-time' },
+                },
+            },
+            UserSubscriptionRequest: {
+                type: 'object',
+                required: ['planId', 'billingCycle'],
+                properties: {
+                    planId: { type: 'integer', example: 1 },
+                    billingCycle: { type: 'string', enum: ['monthly', 'yearly'], example: 'monthly' },
+                    startDate: { type: 'string', format: 'date-time' },
+                    endDate: { type: 'string', format: 'date-time' },
+                    autoRenew: { type: 'boolean', example: false },
                 },
             },
         },
@@ -628,48 +686,157 @@ export const swaggerDocument = {
                 tags: ['Landmarks'],
                 summary: 'Get nearby landmarks by coordinates',
                 parameters: [
-                    {
-                        name: 'lat',
-                        in: 'query',
-                        required: true,
-                        schema: { type: 'number' },
-                    },
-                    {
-                        name: 'lng',
-                        in: 'query',
-                        required: true,
-                        schema: { type: 'number' },
-                    },
-                    {
-                        name: 'radius',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'number', default: 1000 },
-                    },
-                    {
-                        name: 'type',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'string', enum: ['MRT', 'BTS'] },
-                    },
-                    {
-                        name: 'line',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'string' },
-                    },
+                    { name: 'lat', in: 'query', required: true, schema: { type: 'number' } },
+                    { name: 'lng', in: 'query', required: true, schema: { type: 'number' } },
+                    { name: 'radius', in: 'query', required: false, schema: { type: 'number', default: 1000 } },
+                    { name: 'type', in: 'query', required: false, schema: { type: 'string', enum: ['MRT', 'BTS'] } },
+                    { name: 'line', in: 'query', required: false, schema: { type: 'string' } },
                 ],
                 responses: {
-                    200: {
-                        description: 'Nearby landmarks',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/LandmarkListResponse' },
-                            },
-                        },
-                    },
+                    200: { description: 'Nearby landmarks', content: { 'application/json': { schema: { $ref: '#/components/schemas/LandmarkListResponse' } } } },
                     400: { description: 'lat and lng are required' },
                     500: { description: 'Internal server error' },
+                },
+            },
+        },
+        '/membership-plans': {
+            get: {
+                tags: ['MembershipPlans'],
+                summary: 'Get all membership plans',
+                responses: {
+                    200: { description: 'List of plans', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/MembershipPlan' } } } } },
+                },
+            },
+            post: {
+                tags: ['MembershipPlans'],
+                summary: 'Create a membership plan (Admin only)',
+                security: [{ bearerAuth: [] }],
+                requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/MembershipPlanRequest' } } } },
+                responses: {
+                    201: { description: 'Plan created', content: { 'application/json': { schema: { $ref: '#/components/schemas/MembershipPlan' } } } },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden: admin only' },
+                    500: { description: 'Internal server error' },
+                },
+            },
+        },
+        '/membership-plans/{id}': {
+            get: {
+                tags: ['MembershipPlans'],
+                summary: 'Get membership plan by ID',
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                responses: {
+                    200: { description: 'Plan data', content: { 'application/json': { schema: { $ref: '#/components/schemas/MembershipPlan' } } } },
+                    404: { description: 'Plan not found' },
+                },
+            },
+            put: {
+                tags: ['MembershipPlans'],
+                summary: 'Update membership plan (Admin only)',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/MembershipPlanRequest' } } } },
+                responses: {
+                    200: { description: 'Updated plan', content: { 'application/json': { schema: { $ref: '#/components/schemas/MembershipPlan' } } } },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden: admin only' },
+                    404: { description: 'Plan not found' },
+                },
+            },
+            delete: {
+                tags: ['MembershipPlans'],
+                summary: 'Delete membership plan (Admin only)',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                responses: {
+                    200: { description: 'Plan deleted' },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden: admin only' },
+                    404: { description: 'Plan not found' },
+                },
+            },
+        },
+        '/user-subscriptions': {
+            get: {
+                tags: ['UserSubscriptions'],
+                summary: 'Get all subscriptions (Admin only)',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: { description: 'List of subscriptions', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/UserSubscription' } } } } },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden: admin only' },
+                },
+            },
+            post: {
+                tags: ['UserSubscriptions'],
+                summary: 'Subscribe to a plan',
+                security: [{ bearerAuth: [] }],
+                requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UserSubscriptionRequest' } } } },
+                responses: {
+                    201: { description: 'Subscription created', content: { 'application/json': { schema: { $ref: '#/components/schemas/UserSubscription' } } } },
+                    400: { description: 'planId and billingCycle are required' },
+                    401: { description: 'Unauthorized' },
+                    404: { description: 'Membership plan not found' },
+                },
+            },
+        },
+        '/user-subscriptions/me': {
+            get: {
+                tags: ['UserSubscriptions'],
+                summary: 'Get my subscription',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: { description: 'My subscriptions', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/UserSubscription' } } } } },
+                    401: { description: 'Unauthorized' },
+                },
+            },
+        },
+        '/user-subscriptions/{id}': {
+            get: {
+                tags: ['UserSubscriptions'],
+                summary: 'Get subscription by ID',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                responses: {
+                    200: { description: 'Subscription data', content: { 'application/json': { schema: { $ref: '#/components/schemas/UserSubscription' } } } },
+                    401: { description: 'Unauthorized' },
+                    404: { description: 'Subscription not found' },
+                },
+            },
+            put: {
+                tags: ['UserSubscriptions'],
+                summary: 'Update subscription (owner only)',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                requestBody: {
+                    required: true,
+                    content: { 'application/json': { schema: {
+                        type: 'object',
+                        properties: {
+                            billingCycle: { type: 'string', enum: ['monthly', 'yearly'] },
+                            status: { type: 'string' },
+                            autoRenew: { type: 'boolean' },
+                            endDate: { type: 'string', format: 'date-time' },
+                        },
+                    } } },
+                },
+                responses: {
+                    200: { description: 'Updated subscription', content: { 'application/json': { schema: { $ref: '#/components/schemas/UserSubscription' } } } },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden: not your subscription' },
+                    404: { description: 'Subscription not found' },
+                },
+            },
+            delete: {
+                tags: ['UserSubscriptions'],
+                summary: 'Cancel subscription (owner only)',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                responses: {
+                    200: { description: 'Subscription deleted' },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden: not your subscription' },
+                    404: { description: 'Subscription not found' },
                 },
             },
         },
