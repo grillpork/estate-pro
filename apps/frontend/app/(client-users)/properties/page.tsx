@@ -91,7 +91,7 @@ export default function PropertiesListingPage() {
   }
 
   return (
-    <div className="bg-[#0a0a0f] min-h-screen overflow-hidden relative">
+    <div className="bg-[#0a0a0f] min-h-screen text-white pt-24 pb-32 font-sans selection:bg-amber-500/30">
         <section className="relative w-full h-screen mx-auto flex items-center justify-center">
              {/* Animated Background Images */}
              <div className="absolute inset-0 z-0">
@@ -114,10 +114,9 @@ export default function PropertiesListingPage() {
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-amber-500 text-[10px] font-black uppercase tracking-[0.3em] mb-4 shadow-2xl"
+                
               >
-                <Zap size={14} className="animate-pulse" />
-                Premier Collection 2026
+                
               </motion.div>
 
               <motion.h1 
@@ -162,7 +161,7 @@ export default function PropertiesListingPage() {
         </section>
 
         {/* Properties Grid */}
-        <div className="relative -mt-44 z-20">
+        <div className="relative -mt-20 z-20">
           <PropertyCards 
             data={properties} 
             title={null} 

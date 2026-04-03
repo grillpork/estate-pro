@@ -90,7 +90,7 @@ const PropertyCards = ({
             displayedProperties.map((property) => (
               <div 
                 key={property.id} 
-                className="group flex flex-col bg-neutral-800 border-2 border-neutral-700 rounded-[32px] p-1 shadow-xl shadow-black/5 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-500 hover:-translate-y-2"
+                className="group flex flex-col bg-neutral-800 border-2 border-black/70 rounded-[32px] p-1 shadow-xl shadow-black/5 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-500 "
               >
                 {/* Text Above Image */}
                 <div className="px-2 pt-2 pb-3 flex justify-between items-start">

@@ -18,7 +18,12 @@ import {
   Share2,
   Heart,
   Star,
-  ShieldCheck
+  ShieldCheck,
+  Utensils,
+  Car,
+  Waves,
+  Dumbbell,
+  Wifi
 } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -97,7 +102,7 @@ export default function PropertyDetailPage() {
     : property.mainImage ? [`http://localhost:4000/${property.mainImage.imagePath}`] : [];
 
   return (
-    <div className="bg-[#0a0a0f] min-h-screen text-white pb-20 pt-24 font-sans selection:bg-amber-500/30">
+    <div className="bg-[#0a0a0f] min-h-screen text-white pt-32 pb-32 font-sans selection:bg-amber-500/30">
       <Navbar />
       
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -129,7 +134,7 @@ export default function PropertyDetailPage() {
                 <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.95] text-white">
                   {property.name}
                 </h1>
-                <p className="text-sm font-bold text-white/40 flex items-center gap-1.5 uppercase tracking-widest">
+                <p className="text-sm font-bold text-white/40 flex items-center gap-1.5 ">
                    <MapPin size={16} className="text-amber-500" />
                    {property.district}, {property.province}
                 </p>
@@ -189,8 +194,8 @@ export default function PropertyDetailPage() {
               {/* Description Section */}
               <section className="space-y-6">
                  <h3 className="text-xs font-black uppercase tracking-[.3em] text-white/20">Information</h3>
-                 <p className="text-white/50 leading-relaxed text-lg whitespace-pre-line font-medium italic">
-                   "{property.description || 'ไม่มีข้อมูลรายละเอียดเพิ่มเติมสำหรับอสังหาริมทรัพย์ชิ้นนี้'}"
+                 <p className="text-white/50 leading-relaxed text-lg whitespace-pre-line font-medium ">
+                   {property.description || 'ไม่มีข้อมูลรายละเอียดเพิ่มเติมสำหรับอสังหาริมทรัพย์ชิ้นนี้'}
                  </p>
                  <button className="flex items-center gap-2 text-amber-500 font-black text-sm group hover:gap-3 transition-all">
                     VIEW COMPLETE DETAILS <ArrowRight className="w-4 h-4" />
@@ -201,23 +206,23 @@ export default function PropertyDetailPage() {
               <section className="pt-10">
                  <h3 className="text-xs font-black uppercase tracking-[.3em] text-white/20 mb-8">Amenities</h3>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12">
-                    <div className="flex items-center gap-4 text-white/60 font-bold border-b border-white/5 pb-4">
-                       <Zap size={18} className="text-amber-500/50" /> Kitchen Area
+                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
+                       <Utensils size={18} className="text-amber-500" /> Kitchen Area
                     </div>
-                    <div className="flex items-center gap-4 text-white/60 font-bold border-b border-white/5 pb-4">
-                       <Zap size={18} className="text-amber-500/50" /> Free Parking
+                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
+                       <Car size={18} className="text-amber-500" /> Free Parking
                     </div>
-                    <div className="flex items-center gap-4 text-white/60 font-bold border-b border-white/5 pb-4">
-                       <Zap size={18} className="text-amber-500/50" /> Security 24h
+                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
+                       <ShieldCheck size={18} className="text-amber-500" /> Security 24h
                     </div>
-                    <div className="flex items-center gap-4 text-white/60 font-bold border-b border-white/5 pb-4">
-                       <Zap size={18} className="text-amber-500/50" /> Swimming Pool
+                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
+                       <Waves size={18} className="text-amber-500" /> Swimming Pool
                     </div>
-                    <div className="flex items-center gap-4 text-white/60 font-bold border-b border-white/5 pb-4">
-                       <Zap size={18} className="text-amber-500/50" /> Fitness Center
+                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
+                       <Dumbbell size={18} className="text-amber-500" /> Fitness Center
                     </div>
-                    <div className="flex items-center gap-4 text-white/60 font-bold border-b border-white/5 pb-4">
-                       <Zap size={18} className="text-amber-500/50" /> High-speed Wi-Fi
+                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
+                       <Wifi size={18} className="text-amber-500" /> High-speed Wi-Fi
                     </div>
                  </div>
               </section>
@@ -243,31 +248,38 @@ export default function PropertyDetailPage() {
                 propertyName={property.name}
               />
               
-              {/* Information Cards (Floating Style) */}
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-                <div className="p-10 rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl group hover:bg-white/10 transition-all duration-500 border-b-amber-500/50 border-b-4">
-                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-                      <User className="text-amber-500" size={24} strokeWidth={2.5} />
+              {/* Information Cards (Compact Style) */}
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Card 1 */}
+                <div className="p-7 rounded-[1.5rem] bg-white/3 border border-white/5 backdrop-blur-2xl transition-all duration-300">
+                   <div className="flex items-start justify-between mb-4">
+                      <div className="space-y-1">
+                         <h4 className="font-black text-white text-lg tracking-tight">Owner Contact</h4>
+                         <p className="text-white/30 text-xs font-semibold">{property.ownerName || 'Verified Agent'}</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                         <User className="text-amber-500" size={20} strokeWidth={2.5} />
+                      </div>
                    </div>
-                   <h4 className="font-black text-white text-xl mb-1 tracking-tight">Owner Contact</h4>
-                   <p className="text-white/30 text-xs font-black uppercase tracking-[.2em]">{property.ownerName || 'Verified Agent'}</p>
-                   
-                   <div className="mt-8 flex items-center gap-2 text-white/40 text-[10px] font-black uppercase tracking-widest">
-                      <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                   <div className="flex items-center gap-2 text-white/20 text-[9px] font-black uppercase tracking-widest pt-2 border-t border-white/5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/40" />
                       Pro Verified
                    </div>
                 </div>
-                <div className="p-10 rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl group hover:bg-white/10 transition-all duration-500 border-b-amber-500/50 border-b-4">
-                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-                      <HomeIcon className="text-amber-500" size={24} strokeWidth={2.5} />
-                   </div>
-                   <h4 className="font-black text-white text-xl mb-1 tracking-tight">Property Type</h4>
-                   <p className="text-white/30 text-xs font-black uppercase tracking-[.2em]">
-                     {property.brand?.category || 'Condominium'}
-                   </p>
 
-                   <div className="mt-8 flex items-center gap-2 text-white/40 text-[10px] font-black uppercase tracking-widest">
-                      <Star className="w-4 h-4 text-amber-500" />
+                {/* Card 2 */}
+                <div className="p-7 rounded-[1.5rem] bg-white/3 border border-white/5 backdrop-blur-2xl  transition-all duration-300">
+                   <div className="flex items-start justify-between mb-4">
+                      <div className="space-y-1">
+                         <h4 className="font-black text-white text-lg tracking-tight">Property Type</h4>
+                         <p className="text-white/30 text-xs font-semibold">{property.brand?.category || 'Condominium'}</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                         <HomeIcon className="text-amber-500" size={20} strokeWidth={2.5} />
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-2 text-white/20 text-[9px] font-black uppercase tracking-widest pt-2 border-t border-white/5">
+                      <Star className="w-3.5 h-3.5 text-amber-500/40" />
                       Prime Listing
                    </div>
                 </div>

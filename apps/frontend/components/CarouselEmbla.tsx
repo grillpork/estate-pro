@@ -66,9 +66,7 @@ export default function CarouselEmbla() {
 
                 <div className={`absolute inset-0 flex items-end pb-20 md:pb-32 transition-all duration-1000 ${index === selectedIndex ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
                   <div className="max-w-7xl mx-auto px-6 md:px-10 w-full text-white">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-                      Featured Project
-                    </div>
+                    
                     <h2 className="text-5xl md:text-8xl font-black mb-6 tracking-tighter leading-none max-w-4xl">
                       {slide.title}
                     </h2>
