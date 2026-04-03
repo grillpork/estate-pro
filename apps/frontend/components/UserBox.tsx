@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, Sparkles, ChevronsUpDown } from "lucide-react";
+import { LogOut, Settings, User, Sparkles, ChevronsUpDown, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authService } from "@/services/auth";
 
@@ -64,8 +64,16 @@ const UserBox = ({
       onClick={() => setIsOpen(!isOpen)}
     >
       <div className="flex items-center gap-3 overflow-hidden">
-        <div className="w-9 h-9 rounded-lg bg-neutral-700 flex items-center justify-center text-white/40 group-hover:bg-amber-500/20 group-hover:text-amber-400 transition-colors">
-          <User size={20} />
+        <div className="w-9 h-9 rounded-lg bg-neutral-700 flex items-center justify-center text-white/40 group-hover:bg-amber-500/20 group-hover:text-amber-400 transition-colors overflow-hidden">
+          {user.imagePath ? (
+            <img 
+              src={`http://localhost:4000/${user.imagePath.replace(/\\/g, '/')}`} 
+              alt={user.username} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User size={20} />
+          )}
         </div>
         <div className="flex flex-col overflow-hidden text-left">
           <p className="text-sm font-medium text-white truncate group-hover:text-amber-400 transition-colors">
@@ -95,9 +103,27 @@ const UserBox = ({
               <Sparkles size={12} className="animate-pulse" />
               <span>{user.role || 'user'}</span>
             </div>
-            <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                router.push("/profile");
+              }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors"
+            >
               <User size={16} />
               Profile
+            </button>
+            <button 
+               onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                router.push("/my-properties");
+              }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors"
+            >
+              <Building2 size={16} />
+              My Properties
             </button>
             <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
               <Settings size={16} />

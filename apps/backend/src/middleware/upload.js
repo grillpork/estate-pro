@@ -9,7 +9,7 @@ export const storage = multer.memoryStorage();
 export const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 100 * 1024 * 1024, // 100MB
   },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
@@ -125,68 +125,51 @@ export const optimizeImage = async (req, res, next) => {
 
 // Helper: optimize a single file buffer and save to disk
 const optimizeSingleFile = async (fileBuffer, uploadDir) => {
-  const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-  const fileName = `${uniqueSuffix}.webp`;
-  const outputPath = path.join(uploadDir, fileName);
+  const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`
+  const outputPath = path.join(uploadDir, fileName)
 
-  let quality = 80;
-  let currentBuffer;
+  const buffer = await sharp(fileBuffer)
+    .resize({ width: 1280 }) // จำกัดขนาดพอ
+    .webp({ quality: 70 })   // ไม่ต้อง loop แล้ว
+    .toBuffer()
 
-  // Initial conversion to WebP
-  currentBuffer = await sharp(fileBuffer).webp({ quality }).toBuffer();
+  await fs.writeFile(outputPath, buffer)
 
-  // Loop to optimize if file size > 150KB
-  while (currentBuffer.length > 150 * 1024 && quality > 20) {
-    quality -= 10;
-    currentBuffer = await sharp(fileBuffer).webp({ quality }).toBuffer();
+  return {
+    path: outputPath,
+    filename: fileName,
+    size: buffer.length,
+    mimetype: "image/webp",
   }
-
-  // If still > 150KB, reduce resolution
-  if (currentBuffer.length > 150 * 1024) {
-    const metadata = await sharp(fileBuffer).metadata();
-    if (metadata.width) {
-      let currentWidth = metadata.width;
-      while (currentBuffer.length > 150 * 1024 && currentWidth > 400) {
-        currentWidth = Math.round(currentWidth * 0.8);
-        currentBuffer = await sharp(fileBuffer)
-          .resize({ width: currentWidth })
-          .webp({ quality: 20 })
-          .toBuffer();
-      }
-    }
-  }
-
-  // Save optimized file
-  await fs.writeFile(outputPath, currentBuffer);
-
-  return { path: outputPath, filename: fileName, size: currentBuffer.length, mimetype: "image/webp" };
-};
+}
 
 // Middleware: optimize multiple uploaded images
 export const optimizeImages = async (req, res, next) => {
-  if (!req.files || req.files.length === 0) return next();
+  if (!req.files || req.files.length === 0) return next()
 
   try {
-    const uploadDir = getUploadDir(req);
-    await ensureDir(uploadDir);
+    const uploadDir = getUploadDir(req)
+    await ensureDir(uploadDir)
 
-    // Process all files in parallel
-    const results = await Promise.all(
-      req.files.map((file) => optimizeSingleFile(file.buffer, uploadDir))
-    );
+    const results = []
 
-    // Update req.files with optimized info
+    // ✅ ทำทีละรูป (ลด CPU spike)
+    for (const file of req.files) {
+      const result = await optimizeSingleFile(file.buffer, uploadDir)
+      results.push(result)
+    }
+
     req.files = req.files.map((file, i) => ({
       ...file,
       path: results[i].path,
       filename: results[i].filename,
       size: results[i].size,
       mimetype: results[i].mimetype,
-    }));
+    }))
 
-    next();
+    next()
   } catch (error) {
-    console.error("Images optimization error:", error);
-    next(error);
+    console.error("Images optimization error:", error)
+    next(error)
   }
-};
+}

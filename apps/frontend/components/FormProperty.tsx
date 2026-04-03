@@ -23,6 +23,7 @@ import {
   Percent,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import MapPicker from "./MapPicker";
 
 // --- Types ---
 interface PropertyFormData {
@@ -216,6 +217,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
   const router = useRouter();
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<any[]>([]);
   const [isConfirming, setIsConfirming] = useState(false);
   const [language, setLanguage] = useState<"TH" | "EN">("TH");
 
@@ -230,19 +232,39 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
     watch,
     formState: { errors, isSubmitting },
   } = useForm<PropertyFormData>({
-    defaultValues: initialData || {
-      listingType: "SALES",
-      category: "CONDOMINIUM",
-      bedrooms: 0,
-      bathrooms: 0,
-      amenities: [],
-    },
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          brandId: initialData.brandId?.toString(),
+          latitude: initialData.latitude?.toString(),
+          longitude: initialData.longitude?.toString(),
+        }
+      : {
+          listingType: "SALES",
+          category: "CONDOMINIUM",
+          bedrooms: 0,
+          bathrooms: 0,
+          amenities: [],
+        },
   });
 
   const watchAmenities = watch("amenities") || [];
   const watchListingType = watch("listingType");
   const watchDiscountActive = watch("discountActive");
   const watchRentDiscountActive = watch("rentDiscountActive");
+  const watchLat = watch("latitude");
+  const watchLng = watch("longitude");
+
+  // Load existing images on edit
+  useEffect(() => {
+    if (initialData?.images && initialData.images.length > 0 && previewUrls.length === 0) {
+      setExistingImages(initialData.images);
+      const existingUrls = initialData.images.map((img: any) => 
+        `http://localhost:4000/${img.imagePath.replace(/\\/g, '/')}`
+      );
+      setPreviewUrls(existingUrls);
+    }
+  }, [initialData]);
 
   // Fetch brands on mount
   useEffect(() => {
@@ -290,28 +312,40 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
 
   const handleFiles = (newFiles: File[]) => {
     const validImageFiles = newFiles.filter(f => f.type.startsWith("image/"));
+    
+    // Create blob URLs for the new files
+    const newUrls = validImageFiles.map(file => URL.createObjectURL(file));
+
     setSelectedFiles(prev => {
       const combined = [...prev, ...validImageFiles];
-      const limited = combined.slice(0, 10);
-      
-      const newUrls = limited.map(file => URL.createObjectURL(file));
-      setPreviewUrls(prevUrls => {
-        prevUrls.forEach(url => URL.revokeObjectURL(url));
-        return newUrls;
-      });
-      return limited;
+      return combined.slice(0, 10);
+    });
+
+    setPreviewUrls(prev => {
+      const combined = [...prev, ...newUrls];
+      return combined.slice(0, 10);
     });
   };
 
   const removeImage = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviewUrls(prev => {
-      const newUrls = [...prev];
-      URL.revokeObjectURL(newUrls[index]);
-      newUrls.splice(index, 1);
-      return newUrls;
-    });
+    const urlToRemove = previewUrls[index];
+    
+    // If it's a local blob URL, revoke it
+    if (urlToRemove.startsWith("blob:")) {
+      URL.revokeObjectURL(urlToRemove);
+      
+      // Sync selectedFiles: find which file in selectedFiles matches this index
+      const blobIndex = previewUrls.slice(0, index).filter(url => url.startsWith("blob:")).length;
+      setSelectedFiles(prev => prev.filter((_, i) => i !== blobIndex));
+    } else {
+      // It's an existing image, find its ID and remove from existingImages
+      // The logic is: previewUrls[0...n-1] contains [existing[0...m-1], local[0...k-1]]
+      // So if it's not a blob, it matches existingImages[index]
+      setExistingImages(prev => prev.filter((_, i) => i !== index));
+    }
+
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -369,12 +403,23 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
       let result;
       if (initialData?.id) {
         result = await updatePropertyService(initialData.id, payload);
+        
+        // Image Sync for Update
+        const formData = new FormData();
+        const keepIds = existingImages.map(img => img.id);
+        formData.append("keepImageIds", keepIds.join(","));
+        
+        selectedFiles.forEach(file => {
+          formData.append("images", file);
+        });
+
+        // Use the image sync route (PUT)
+        await propertyService.updatePropertyImage(initialData.id, formData);
       } else {
         result = await propertyService.createProperty(payload);
-      }
-
-      if (selectedFiles.length > 0 && result.id) {
-        await propertyService.uploadPropertyImages(result.id, selectedFiles);
+        if (selectedFiles.length > 0 && result.id) {
+          await propertyService.uploadPropertyImages(result.id, selectedFiles);
+        }
       }
 
       if (onSubmit) await onSubmit(result);
@@ -641,7 +686,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("startingPrice", { required: watchListingType !== "RENT" ? "กรุณากรอกราคา" : false })}
                         placeholder="เช่น 1,000,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition no-spinner placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                       {errors.startingPrice && <p className="text-red-500 text-xs mt-1">{errors.startingPrice.message}</p>}
                     </div>
@@ -653,7 +698,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("estimatedInstallment")}
                         placeholder="เช่น 15,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition no-spinner placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -697,7 +742,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                               type="number"
                               {...register("discount")}
                               placeholder="เช่น 50000 หรือ 5"
-                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl no-spinner outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
                         </motion.div>
@@ -735,7 +780,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("rentPrice", { required: watchListingType !== "SALES" ? "กรุณากรอกค่าเช่า" : false })}
                         placeholder="เช่น 15,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                        className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                       {errors.rentPrice && <p className="text-red-500 text-xs mt-1">{errors.rentPrice.message}</p>}
                     </div>
@@ -747,7 +792,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                         type="number"
                         {...register("rentNetTotal")}
                         placeholder="เช่น 14,000"
-                        className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                        className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -791,7 +836,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                               type="number"
                               {...register("rentDiscount")}
                               placeholder="เช่น 1000 หรือ 5"
-                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                              className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
                         </motion.div>
@@ -810,43 +855,43 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">พื้นที่โครงการ(ไร่)</label>
-                <input type="number" step="0.01" {...register("projectArea")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" step="0.01" {...register("projectArea")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">พื้นที่ดิน(ตารางวา)</label>
-                <input type="number" step="0.01" {...register("landArea")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" step="0.01" {...register("landArea")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">พื้นที่ใช้สอย(ตร.ม.)</label>
-                <input type="number" step="0.01" {...register("usableArea")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" step="0.01" {...register("usableArea")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">จำนวนยูนิตทั้งหมด</label>
-                <input type="number" {...register("totalUnits")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" {...register("totalUnits")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
 
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">จำนวนที่จอดรถ(คัน)</label>
-                <input type="number" {...register("parkingSpaces")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" {...register("parkingSpaces")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">ที่จอดรถ(%)</label>
-                <input type="number" step="0.01" max="100" {...register("parkingPercent", { max: { value: 999.99, message: "ค่าสูงสุดคือ 999.99" } })} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" step="0.01" max="100" {...register("parkingPercent", { max: { value: 999.99, message: "ค่าสูงสุดคือ 999.99" } })} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
                 {errors.parkingPercent && <p className="text-red-500 text-xs mt-1">{errors.parkingPercent.message}</p>}
               </div>
 
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">จำนวนห้องสตูดิโอ(ห้อง)</label>
-                <input type="number" {...register("studio")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" {...register("studio")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">จำนวนห้องนอน(ห้อง)</label>
-                <input type="number" {...register("bedrooms")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" {...register("bedrooms")} className="w-full no-spinner p-3 bg-white/5 no-spinner rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
 
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">จำนวนห้องน้ำ(ห้อง)</label>
-                <input type="number" {...register("bathrooms")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" {...register("bathrooms")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">ทิศของห้อง</label>
@@ -862,16 +907,16 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">ชั้นที่</label>
-                <input type="number" {...register("floor")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" {...register("floor")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
 
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">อาคาร/ตึก</label>
-                <input type="text" {...register("building")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="text" {...register("building")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">ค่าส่วนกลาง(บาท/เดือน)</label>
-                <input type="number" step="0.01" {...register("commonFee")} className="w-full p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                <input type="number" step="0.01" {...register("commonFee")} className="w-full no-spinner p-3 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
               </div>
             </div>
           </section>
@@ -916,20 +961,24 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
 
               <div>
                 <label className="text-[13px] font-bold text-white/60 mb-2 block">เลือกตำแหน่งบนแผนที่</label>
-                <div className="w-full h-[400px] bg-white/5 rounded-2xl overflow-hidden relative border border-white/5">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white/30">
-                  </div>
-                </div>
+                <MapPicker 
+                  lat={parseFloat(watchLat) || 13.7563} 
+                  lng={parseFloat(watchLng) || 100.5018} 
+                  onLocationSelect={(lat, lng) => {
+                    setValue("latitude", lat.toString());
+                    setValue("longitude", lng.toString());
+                  }} 
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 <div>
                   <label className="text-[13px] font-bold text-white/60 mb-2 block">Latitude</label>
-                  <input type="number" step="any" {...register("latitude")} className="w-full p-3.5 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                  <input type="number" step="any" {...register("latitude")} className="no-spinner w-full p-3.5 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-white/60 mb-2 block">Longitude</label>
-                  <input type="number" step="any" {...register("longitude")} className="w-full p-3.5 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
+                  <input type="number" step="any" {...register("longitude")} className="no-spinner w-full p-3.5 bg-white/5 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500" />
                 </div>
               </div>
             </div>
@@ -1024,7 +1073,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                     max="5"
                     {...register("condition", { min: 1, max: 5 })}
                     placeholder="1 = แย่สุด, 5 = ดีมาก"
-                    className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                    className=" no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
                 <div>

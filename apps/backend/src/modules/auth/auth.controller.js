@@ -142,6 +142,8 @@ export const getMe = async (req, res) => {
                 username: users.username,
                 firstName: users.firstName,
                 lastName: users.lastName,
+                imagePath: users.imagePath,
+                phoneNumber: users.phoneNumber,
                 role: roles.name,
             })
             .from(users)

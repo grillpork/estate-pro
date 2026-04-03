@@ -23,16 +23,17 @@ export const updateUser = async (req, res) => {
     try {
         const id = req.params.id
         const { username, firstName, lastName, password, phoneNumber, roleId } = req.body
+        const updateData = {};
+        if (username !== undefined) updateData.username = username;
+        if (firstName !== undefined) updateData.firstName = firstName;
+        if (lastName !== undefined) updateData.lastName = lastName;
+        if (password !== undefined) updateData.password = password; // Should hash if updating from common user endpoint, but backend logic seems simple here.
+        if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+        if (roleId !== undefined) updateData.roleId = Number(roleId);
+
         const updatedUsers = await db
             .update(users)
-            .set({
-                username,
-                firstName,
-                lastName,
-                password,
-                phoneNumber,
-                roleId: roleId ? Number(roleId) : undefined
-            })
+            .set(updateData)
             .where(eq(users.id, Number(id)))
             .returning()
 
@@ -107,7 +108,7 @@ export const uploadProfileImage = async (req, res) => {
         }
 
         // บันทึก path ใหม่ลง database
-        const newImagePath = file.path.replace(process.cwd() + path.sep, '')
+        const newImagePath = file.path.replace(process.cwd() + path.sep, '').replace(/\\/g, '/')
         const [updated] = await db
             .update(users)
             .set({ imagePath: newImagePath })
@@ -120,3 +121,4 @@ export const uploadProfileImage = async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' })
     }
 }
+
