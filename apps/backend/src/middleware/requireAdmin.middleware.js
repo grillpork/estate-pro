@@ -6,7 +6,7 @@ export const requireAdmin = (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden: no role assigned' })
   }
 
-  if (role.toLowerCase() !== 'admin') {
+  if (role.toLowerCase() !== 'admin' && role.toLowerCase() !== 'superadmin') {
     return res.status(403).json({ message: 'Forbidden: admin only' })
   }
 

@@ -15,6 +15,8 @@ import {
   Inbox,
   PanelLeft,
   ArrowLeftToLine,
+  Crown,
+  CreditCard,
 } from "lucide-react";
 import UserBox from "@/components/UserBox";
 import { getAllNotifications } from "@/services/admin/notification";
@@ -73,6 +75,16 @@ const SideBar = () => {
       href: "/dashboard/properties",
       label: "ทรัพย์สิน",
       icon: <Building2 size={18} />,
+    },
+    {
+      href: "/dashboard/membership-plans",
+      label: "แพ็กเกจ",
+      icon: <Crown size={18} />,
+    },
+    {
+      href: "/dashboard/user-subscriptions",
+      label: "สมัครสมาชิก",
+      icon: <CreditCard size={18} />,
     },
     {
       href: "/dashboard/notification",
