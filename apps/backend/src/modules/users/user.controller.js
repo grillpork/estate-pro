@@ -19,6 +19,13 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const id = req.params.id
+        const user = req.user
+
+        // Authorization check: Only user themselves or admin can update
+        if (Number(id) !== Number(user.id) && user.role !== 'admin' && user.role !== 'superadmin') {
+            return res.status(403).json({ message: 'Forbidden: คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้ใช้อื่น' })
+        }
+
         const { username, firstName, lastName, password, phoneNumber, roleId } = req.body
 
         const result = await sql`

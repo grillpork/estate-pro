@@ -139,6 +139,7 @@ export const getMe = async (req, res) => {
                 u.username,
                 u.first_name  AS "firstName",
                 u.last_name   AS "lastName",
+                u.image_path  AS "imagePath",
                 r.name        AS role
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id

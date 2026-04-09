@@ -43,7 +43,7 @@ app.use('/', uploadTestRouter)
 app.use('/auth', authRouter)
 
 // User routes
-app.use('/api', userRouter)
+app.use('/', userRouter)
 
 // Properties routes 
 app.use('/', propertiesRouter)

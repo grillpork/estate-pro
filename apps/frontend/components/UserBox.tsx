@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, Sparkles, ChevronsUpDown } from "lucide-react";
+import { LogOut, Settings, User, Sparkles, ChevronsUpDown, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authService } from "@/services/auth";
 
@@ -95,11 +95,24 @@ const UserBox = ({
               <Sparkles size={12} className="animate-pulse" />
               <span>{user.role || 'user'}</span>
             </div>
-            <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
+            <button 
+              onClick={() => { setIsOpen(false); router.push("/my-properties"); }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors"
+            >
+              <Building2 size={16} />
+              My Listings
+            </button>
+            <button 
+              onClick={() => { setIsOpen(false); router.push("/profile"); }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors"
+            >
               <User size={16} />
               Profile
             </button>
-            <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
+            <button 
+              onClick={() => { setIsOpen(false); router.push("/settings"); }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors"
+            >
               <Settings size={16} />
               Settings
             </button>

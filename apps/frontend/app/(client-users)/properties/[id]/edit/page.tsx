@@ -46,8 +46,7 @@ export default function EditPropertyPage({
   if (!property) return <div>Loading...</div>;
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">แก้ไขทรัพย์สิน</h1>
+    <div>
       <ListingProperty
         initialData={property}
         onSubmit={handleSubmit}
