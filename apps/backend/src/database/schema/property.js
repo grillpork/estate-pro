@@ -21,6 +21,11 @@ export const listingTypeEnum = pgEnum("listing_type", [
   "RENT",
   "SALE & RENT",
 ]);
+export const propertyStatusEnum = pgEnum("property_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
 
 export const properties = pgTable("properties", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -69,7 +74,8 @@ export const properties = pgTable("properties", {
     .notNull()
     .default("BAHT"),
   rentNetTotal: numeric("rent_net_total", { precision: 15, scale: 2 }),
-  isActive: boolean("is_active").notNull().default(true),
+  status: propertyStatusEnum("status").notNull().default("pending"),
+  rejectionReason: text("rejection_reason"),
   condition: integer("condition").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: false }),

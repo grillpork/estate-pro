@@ -14,6 +14,7 @@ import {
   Mail,
   User as UserIcon,
   Calendar,
+  Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,17 +43,16 @@ type User = {
   createdAt: string;
   verified: string;
   subscribed: string;
+  propertiesCount: number;
 };
 
 const roleItem = [
-  { id: 1, name: "superadmin" },
   { id: 2, name: "admin" },
   { id: 3, name: "user" },
 ];
 
 const filterRoleOptions = [
   { id: 0, name: "all", label: "All Roles" },
-  { id: 1, name: "superadmin", label: "Super Admin" },
   { id: 2, name: "admin", label: "Admin" },
   { id: 3, name: "user", label: "User" },
 ];
@@ -405,11 +405,7 @@ const UserLists = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-neutral-200 pl-5">
-                          {
-                            properties.filter(
-                              (property) => property.userId === user.id,
-                            ).length
-                          }
+                          {user.propertiesCount || 0}
                         </span>
                       </div>
                     </td>
@@ -462,12 +458,24 @@ const UserLists = () => {
                       <div className="flex items-center justify-center gap-2">
                         <span
                           className={`inline-flex items-center w-2 h-2 rounded-full ${
-                            user.verified === "verified"
-                              ? "bg-green-500"
-                              : "bg-red-500"
+                            !user.subscribed || user.subscribed === "Unsubscribed"
+                              ? "bg-red-500"
+                              : user.subscribed.toLowerCase() === "premium"
+                                ? "bg-indigo-500"
+                                : user.subscribed.toLowerCase() === "professional"
+                                  ? "bg-blue-500"
+                                  : "bg-green-500"
                           }`}
                         ></span>
-                        <span className="text-xs text-neutral-400 capitalize">
+                        <span className={`text-xs font-medium capitalize ${
+                            !user.subscribed || user.subscribed === "Unsubscribed"
+                              ? "text-neutral-400"
+                              : user.subscribed.toLowerCase() === "premium"
+                                ? "text-indigo-400"
+                                : user.subscribed.toLowerCase() === "professional"
+                                  ? "text-blue-400"
+                                  : "text-green-400"
+                          }`}>
                           {user.subscribed || "Unsubscribed"}
                         </span>
                       </div>
@@ -476,32 +484,44 @@ const UserLists = () => {
                     {/* Verified */}
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <span
-                          className={`inline-flex items-center w-2 h-2 rounded-full ${
-                            user.verified === "verified"
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }`}
-                        ></span>
-                        <span className="text-xs text-neutral-400 capitalize">
-                          {user.verified || "Unverified"}
-                        </span>
+                        {user.verified === "phone" || user.verified === "verified" ? (
+                          <>
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                              <Check size={12} className="text-green-500" />
+                              <span className="text-[10px] font-medium text-green-500 uppercase">
+                                ยืนยันเบอร์โทร
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center w-2 h-2 rounded-full bg-red-500"></span>
+                            <span className="text-xs text-neutral-400 capitalize">
+                              Unverified
+                            </span>
+                          </>
+                        )}
                       </div>
                     </td>
 
                     {/* Status */}
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <span
-                          className={`inline-flex items-center w-2 h-2 rounded-full ${
-                            user.status === "active"
-                              ? "bg-green-500"
-                              : "bg-neutral-500"
-                          }`}
-                        ></span>
-                        <span className="text-xs text-neutral-400 capitalize">
-                          {user.status || "Active"}
-                        </span>
+                        {user.status === "active" ? (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                            <Check size={12} className="text-green-500" />
+                            <span className="text-[10px] font-medium text-green-500 uppercase">
+                              ใช้งาน
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center w-2 h-2 rounded-full bg-neutral-500"></span>
+                            <span className="text-xs text-neutral-400 capitalize">
+                              {user.status || "ระงับการใช้งาน"}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </td>
 

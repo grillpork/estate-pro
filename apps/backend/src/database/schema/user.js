@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastSeen: timestamp("last_seen"),
+  verification: varchar("verification", { length: 20 }).default("unverified"),
 });
 
 export const roles = pgTable("roles", {

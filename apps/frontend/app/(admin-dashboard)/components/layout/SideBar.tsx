@@ -22,6 +22,8 @@ import UserBox from "@/components/UserBox";
 import { getAllNotifications } from "@/services/admin/notification";
 import { useSession } from "@/lib/auth-client";
 
+import { useSidebar } from "../context/SidebarContext";
+
 type NavItem = {
   href: string;
   label: string;
@@ -33,7 +35,7 @@ type NavItem = {
 const SideBar = () => {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed } = useSidebar();
   const session = useSession();
 
   // Fetch notification count
@@ -115,14 +117,14 @@ const SideBar = () => {
 
   return (
     <aside
-      className={`flex flex-col h-screen ${isCollapsed ? "w-20" : "w-72"} bg-[#151517] border-r border-[#1F1F23] text-sm  font-sans transition-all duration-300`}
+      className={`flex flex-col h-screen ${isCollapsed ? "w-20" : "w-72"} bg-[#151517] border-r border-[#1F1F23] text-sm  font-sans transition-all duration-300 relative`}
     >
       {/* Header */}
       <div
         className={`py-6 flex flex-col ${isCollapsed ? "items-center px-0" : "px-6"}`}
       >
         <div
-          className={`relative flex items-center ${isCollapsed ? "justify-center mb-6 flex-col gap-4" : "justify-between mb-6 w-full"}`}
+          className={`relative flex items-center ${isCollapsed ? "justify-center mb-0 flex-col gap-4" : "justify-between mb-0 w-full"}`}
         >
           <Link
             href="/dashboard"
@@ -138,42 +140,7 @@ const SideBar = () => {
               </span>
             )}
           </Link>
-
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`absolute top-0 -right-10 p-2 bg-[#151517] cursor-pointer text-neutral-500 hover:text-white transition-colors rounded-lg hover:bg-[#1A1A1E] ${isCollapsed ? "" : ""}`}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            <ArrowLeftToLine size={18} className={isCollapsed ? "rotate-180" : ""} />
-          </button>
         </div>
-
-        {/* Search Bar */}
-        {!isCollapsed ? (
-          <div className="relative group w-full">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2  text-neutral-500 group-focus-within:text-indigo-400 transition-colors"
-              size={16}
-            />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full bg-[#1A1A1E] text-neutral-300 pl-10 pr-12 py-2.5 rounded-xl border border-[#27272A] focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 border border-[#333] rounded px-1.5 py-0.5 text-[10px] items-center flex">
-              <span className="mr-0.5">⌘</span>F
-            </div>
-          </div>
-        ) : (
-          <div className="flex justify-center mb-2">
-            <button
-              className="p-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-[#1A1A1E] transition-colors"
-              title="Search"
-            >
-              <Search size={18} />
-            </button>
-          </div>
-        )}
       </div>
 
       <hr className="border-[#27272A]" />
@@ -278,20 +245,11 @@ const SideBar = () => {
 
       {/* Footer Area */}
       <div
-        className={`p-4 bg-[#0F0F12] border-t border-[#1F1F23] space-y-4 ${isCollapsed ? "flex flex-col items-center px-2" : ""}`}
+        className={`p-4 bg-[#0F0F12] border-t border-[#1F1F23] flex items-center justify-center ${isCollapsed ? "px-2" : ""}`}
       >
-        {/* User Profile */}
-        <div
-          className={`pt-1 w-full ${isCollapsed ? "flex justify-center" : ""}`}
-        >
-          {isCollapsed ? (
-            <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white cursor-pointer transition-colors">
-              <User size={18} />
-            </div>
-          ) : (
-            <UserBox variant="ghost" />
-          )}
-        </div>
+        <p className="text-[10px] text-neutral-600 font-medium tracking-tight">
+          {isCollapsed ? "v1.0" : "EstatePro v1.0.0"}
+        </p>
       </div>
     </aside>
   );

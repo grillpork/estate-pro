@@ -23,7 +23,7 @@
     "morgan": "^1.10.1",
     "multer": "^2.1.0",
     "nodemon": "^3.1.14",
-    "sharp": "^0.34.1",
+    "sharp": "^0.34.5",
     "swagger": "^0.7.5",
     "swagger-ui-express": "^5.0.1"
   },

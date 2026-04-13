@@ -7,3 +7,4 @@ export * from './favorites.js';
 export * from './membershipPlans.js';
 export * from './messages.js';
 export * from './userSubscriptions.js';
+export * from './notifications.js';

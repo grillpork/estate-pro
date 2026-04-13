@@ -91,8 +91,8 @@ export default function PropertiesListingPage() {
   }
 
   return (
-    <div className="bg-[#0a0a0f] min-h-screen text-white pt-24 pb-32 font-sans selection:bg-amber-500/30">
-        <section className="relative w-full h-screen mx-auto flex items-center justify-center">
+    <div className="bg-[#0a0a0f] min-h-screen text-white pt-0 pb-32 font-sans selection:bg-amber-500/30 overflow-x-hidden">
+        <section className="relative w-full h-screen mx-auto flex items-center justify-center overflow-hidden">
              {/* Animated Background Images */}
              <div className="absolute inset-0 z-0">
                <AnimatePresence mode="wait">
@@ -122,7 +122,7 @@ export default function PropertiesListingPage() {
               <motion.h1 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="text-4xl md:text-8xl font-black text-white text-center leading-[0.9] tracking-tighter"
+                className="text-4xl md:text-8xl font-black text-white text-center leading-[0.9] tracking-tighter break-words max-w-full"
               >
                 EXPERIENCE <br />
                 BEYOND <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-400 to-amber-600">LUXURY</span>
@@ -182,8 +182,8 @@ export default function PropertiesListingPage() {
         )}
 
       {/* Modern Decoration elements */}
-      <div className="absolute top-[30%] right-[-5%] w-[300px] h-[300px] bg-amber-500/5 blur-[100px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-[30%] right-0 translate-x-1/2 w-[300px] h-[300px] bg-amber-500/5 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[20%] left-0 -translate-x-1/2 w-[400px] h-[400px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
     </div>
   );
 }

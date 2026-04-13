@@ -2,7 +2,7 @@ import { eq, inArray } from 'drizzle-orm'
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../database/schema/db.js'
-import { properties, propertyImages, brands } from '../../database/schema/index.js'
+import { properties, propertyImages, brands, notifications } from '../../database/schema/index.js'
 
 // Helper to fetch property with joins
 const getPropertyByIdWithJoins = async (id) => {
@@ -46,6 +46,8 @@ export const getAllProperties = async (req, res) => {
             .from(properties)
             .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
             .leftJoin(brands, eq(properties.brandId, brands.id))
+            .where(eq(properties.status, 'approved'))
+
 
         // Format the output to be cleaner
         const formattedResult = result.map(row => ({
@@ -126,7 +128,8 @@ export const createProperty = async (req, res) => {
             'facing', 'latitude', 'longitude', 'occupancy', 'ownerName', 'ownerPhone',
             'availableDate', 'brandId', 'amenities', 'listingType', 'discount',
             'discountActive', 'discountType', 'rentDiscount', 'rentDiscountActive',
-            'rentDiscountType', 'rentNetTotal', 'isActive', 'condition'
+            'rentDiscountType', 'rentNetTotal', 'status', 'condition'
+
         ]
 
         const insertData = {}
@@ -146,8 +149,10 @@ export const createProperty = async (req, res) => {
 
         if (insertData.discountActive !== undefined) 
             insertData.discountActive = insertData.discountActive === 'true' || insertData.discountActive === true
-        if (insertData.isActive !== undefined) 
-            insertData.isActive = insertData.isActive === 'true' || insertData.isActive === true
+        if (insertData.status !== undefined) {
+            insertData.status = insertData.status.toLowerCase();
+        }
+
 
         if (insertData.availableDate) {
             const d = new Date(insertData.availableDate)
@@ -173,6 +178,15 @@ export const createProperty = async (req, res) => {
                 userId: Number(req.user.id),
             })
             .returning()
+
+        // Create Admin Notification
+        await db.insert(notifications).values({
+            userId: null, // Global notification for all admins
+            title: 'New Property Listing',
+            message: `A new property "${created.name}" has been listed by ${req.user.firstName || 'a user'} and is pending approval.`,
+            type: 'PROPERTY_PENDING',
+            status: 'unread'
+        });
 
         // จัดการรูปภาพ (ถ้ามีการส่งมา)
         const files = req.files && req.files.length > 0
@@ -230,7 +244,8 @@ export const updateProperty = async (req, res) => {
             'facing', 'latitude', 'longitude', 'occupancy', 'ownerName', 'ownerPhone',
             'availableDate', 'brandId', 'amenities', 'listingType', 'discount',
             'discountActive', 'discountType', 'rentDiscount', 'rentDiscountActive',
-            'rentDiscountType', 'rentNetTotal', 'isActive', 'condition'
+            'rentDiscountType', 'rentNetTotal', 'status', 'condition'
+
         ]
 
         const updateData = {}

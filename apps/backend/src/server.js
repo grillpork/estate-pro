@@ -16,6 +16,7 @@ import { favoritesRouter } from './modules/favorites/favorites.routes.js'
 import { membershipPlansRouter } from './modules/membershipPlans/membershipPlans.routes.js'
 import { userSubscriptionsRouter } from './modules/userSubscriptions/userSubscriptions.routes.js'
 import uploadTestRouter from './modules/upload-test.routes.js'
+import adminRouter from './modules/admin/admin.routes.js'
 
 const PORT = 4000
 
@@ -65,6 +66,9 @@ app.use('/', membershipPlansRouter)
 
 // User Subscriptions routes
 app.use('/', userSubscriptionsRouter)
+
+// Admin routes
+app.use('/admin', adminRouter)
 
 // Error handling middleware
 app.use((err, req, res, next) => {
