@@ -1,4 +1,4 @@
-import { eq, and, or, asc } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 import { db } from '../../database/db.js'
 import { messages, conversations } from '../../database/schema/index.js'
 
@@ -25,12 +25,18 @@ export const sendMessage = async (req, res) => {
         const { id } = req.params
         const { content } = req.body
         const senderId = req.user.id
+        const conversationId = parseInt(id)
 
         const result = await db.insert(messages).values({
-            conversationId: parseInt(id),
+            conversationId,
             senderId,
             content,
         }).returning()
+
+        await db
+            .update(conversations)
+            .set({ updatedAt: new Date() })
+            .where(eq(conversations.id, conversationId))
 
         return res.status(201).json(result[0])
     } catch (error) {
@@ -43,13 +49,19 @@ export const sendMessage = async (req, res) => {
 export const receiveWebhookMessage = async (req, res) => {
     try {
         const { conversationId, senderId, content } = req.body
+        const parsedConversationId = parseInt(conversationId)
 
         // ในอนาคตคุณสามารถเพิ่ม Logic เช็ค signature หรือ validate data จาก LINE/FB ตรงนี้ได้ครับ
         const result = await db.insert(messages).values({
-            conversationId: parseInt(conversationId),
+            conversationId: parsedConversationId,
             senderId: senderId ? parseInt(senderId) : null,
             content,
         }).returning()
+
+        await db
+            .update(conversations)
+            .set({ updatedAt: new Date() })
+            .where(eq(conversations.id, parsedConversationId))
 
         return res.status(200).json({
             status: 'success',

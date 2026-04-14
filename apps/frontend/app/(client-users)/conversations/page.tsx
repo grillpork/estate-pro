@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  countUnreadMessages,
+  getChatReadMap,
+  setConversationReadAt,
+} from "@/lib/chatUnread";
 
 const PROPERTY_CARD_PREFIX = "__PROPERTY_CARD__:";
 
@@ -63,9 +68,8 @@ export default function MessengerPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [unreadByConversation, setUnreadByConversation] = useState<Record<number, number>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevMessageCountRef = useRef(0);
-  const shouldForceScrollRef = useRef(false);
 
   // Fetch initial data (Conversations & Users)
   useEffect(() => {
@@ -118,14 +122,11 @@ export default function MessengerPage() {
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
-      prevMessageCountRef.current = 0;
       return;
     }
 
     let isActive = true;
     let isFirstLoad = true;
-    shouldForceScrollRef.current = true;
-    prevMessageCountRef.current = 0;
 
     const fetchMessages = async () => {
       try {
@@ -179,20 +180,9 @@ export default function MessengerPage() {
   };
 
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || messages.length === 0) return;
-
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight;
-    const isNearBottom = distanceFromBottom < 120;
-    const hasNewMessage = messages.length > prevMessageCountRef.current;
-
-    if (shouldForceScrollRef.current || (hasNewMessage && isNearBottom)) {
-      scrollToBottom(prevMessageCountRef.current === 0 ? "auto" : "smooth");
-      shouldForceScrollRef.current = false;
-    }
-
-    prevMessageCountRef.current = messages.length;
+    if (!selectedId || messages.length === 0) return;
+    const timer = setTimeout(() => scrollToBottom("auto"), 50);
+    return () => clearTimeout(timer);
   }, [messages, selectedId]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -208,7 +198,6 @@ export default function MessengerPage() {
         response.data as Message,
       ]);
       setNewMessage("");
-      shouldForceScrollRef.current = true;
     } catch (error) {
       console.error("Send error:", error);
     }
@@ -221,6 +210,79 @@ export default function MessengerPage() {
     const interval = setInterval(heartbeat, 25000); // 25s
     return () => clearInterval(interval);
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    let isActive = true;
+
+    const refreshConversationsAndUnread = async () => {
+      try {
+        const convRes = await api.get("/conversations");
+        if (!isActive) return;
+
+        const nextConversations = (convRes.data || []) as Conversation[];
+        setConversations(nextConversations);
+
+        if (nextConversations.length === 0) {
+          setUnreadByConversation({});
+          return;
+        }
+
+        const readMap = getChatReadMap(currentUser.id);
+        const unreadEntries = await Promise.all(
+          nextConversations.map(async (conv) => {
+            const msgRes = await api.get(`/conversations/${conv.id}/messages`);
+            const convMessages = (msgRes.data || []) as Message[];
+            const unread = countUnreadMessages(
+              convMessages,
+              currentUser.id,
+              readMap[String(conv.id)],
+            );
+            return [conv.id, unread] as const;
+          }),
+        );
+
+        if (!isActive) return;
+
+        const nextUnreadMap: Record<number, number> = {};
+        unreadEntries.forEach(([conversationId, unread]) => {
+          if (unread > 0) nextUnreadMap[conversationId] = unread;
+        });
+
+        if (selectedId) {
+          delete nextUnreadMap[Number(selectedId)];
+        }
+
+        setUnreadByConversation(nextUnreadMap);
+      } catch (error) {
+        console.error("Refresh conversation unread error:", error);
+      }
+    };
+
+    refreshConversationsAndUnread();
+    const interval = setInterval(refreshConversationsAndUnread, 5000);
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
+  }, [currentUser?.id, selectedId]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !selectedId || messages.length === 0) return;
+
+    const latestSeenAt = messages[messages.length - 1]?.createdAt;
+    if (!latestSeenAt) return;
+
+    setConversationReadAt(currentUser.id, selectedId, latestSeenAt);
+    setUnreadByConversation((prev) => {
+      const selectedConversationId = Number(selectedId);
+      if (!prev[selectedConversationId]) return prev;
+      const next = { ...prev };
+      delete next[selectedConversationId];
+      return next;
+    });
+  }, [currentUser?.id, selectedId, messages]);
 
   // UI Helpers
   const getOtherUser = (conv: Conversation | undefined): UserLite => {
@@ -297,6 +359,7 @@ export default function MessengerPage() {
                   const other = getOtherUser(conv);
                   const isSelected = selectedId === conv.id.toString();
                   const online = isOnline(other);
+                  const unreadCount = unreadByConversation[conv.id] || 0;
 
                   return (
                     <div
@@ -345,6 +408,11 @@ export default function MessengerPage() {
                           </p>
                         </div>
                       </div>
+                      {!isSelected && unreadCount > 0 && (
+                        <span className="ml-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black leading-5 text-center">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
                     </div>
                   );
                 })

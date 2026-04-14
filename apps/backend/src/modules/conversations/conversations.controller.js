@@ -1,4 +1,4 @@
-import { eq, or, and } from 'drizzle-orm'
+import { eq, or, and, desc } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
 import { conversations } from '../../database/schema/index.js'
 
@@ -17,6 +17,7 @@ export const getAllConversations = async (req, res) => {
           eq(conversations.user2Id, uid)
         )
       )
+      .orderBy(desc(conversations.updatedAt))
     return res.json(result)
   } catch (error) {
     console.error('getAllConversations error:', error)

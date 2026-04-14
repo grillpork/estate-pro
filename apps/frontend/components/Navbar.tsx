@@ -5,11 +5,34 @@ import { usePathname } from "next/navigation";
 import { Home, Building2, PlusCircle, Menu, X, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import UserBox from "./UserBox";
+import { api } from "@/lib/api";
+import { countUnreadMessages, getChatReadMap } from "@/lib/chatUnread";
+
+type ConversationLite = {
+  id: number;
+};
+
+type MessageLite = {
+  senderId: number | null;
+  createdAt: string;
+};
 
 const Navbar = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({});
+  const [currentUserId, setCurrentUserId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+    try {
+      const parsed = JSON.parse(userStr) as { id?: number };
+      return parsed?.id ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const [unreadRoomCount, setUnreadRoomCount] = useState(0);
   const containerRef = useRef<HTMLElement>(null);
   const linksContainerRef = useRef<HTMLDivElement>(null);
 
@@ -21,6 +44,72 @@ const Navbar = () => {
   ];
 
   const isActive = (path: string) => pathname === path;
+  const formatBadge = (count: number) => (count > 99 ? "99+" : String(count));
+
+  useEffect(() => {
+    if (currentUserId) return;
+
+    api
+      .get("/auth/me")
+      .then((res) => {
+        if (res.data?.id) {
+          setCurrentUserId(Number(res.data.id));
+          localStorage.setItem("user", JSON.stringify(res.data));
+        }
+      })
+      .catch(() => {});
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    let isActive = true;
+
+    const loadUnreadRooms = async () => {
+      try {
+        const convRes = await api.get("/conversations");
+        const conversations = (convRes.data || []) as ConversationLite[];
+
+        if (!isActive) return;
+        if (conversations.length === 0) {
+          setUnreadRoomCount(0);
+          return;
+        }
+
+        const readMap = getChatReadMap(currentUserId);
+        const unreadCounts = await Promise.all(
+          conversations.map(async (conv) => {
+            const msgRes = await api.get(`/conversations/${conv.id}/messages`);
+            const messages = (msgRes.data || []) as MessageLite[];
+            return countUnreadMessages(
+              messages,
+              currentUserId,
+              readMap[String(conv.id)],
+            );
+          }),
+        );
+
+        if (!isActive) return;
+        const roomsWithUnread = unreadCounts.filter((count) => count > 0).length;
+        setUnreadRoomCount(roomsWithUnread);
+      } catch {
+        if (isActive) setUnreadRoomCount(0);
+      }
+    };
+
+    loadUnreadRooms();
+    const interval = setInterval(loadUnreadRooms, 5000);
+    const onFocus = () => loadUnreadRooms();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [currentUserId]);
+
+  const displayUnreadRoomCount = currentUserId ? unreadRoomCount : 0;
 
   useEffect(() => {
     const container = linksContainerRef.current;
@@ -69,6 +158,7 @@ const Navbar = () => {
           {navLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(link.href);
+            const isMessagesLink = link.href === "/conversations";
   
             return (
               <Link
@@ -78,7 +168,14 @@ const Navbar = () => {
                 className="relative flex items-center gap-2 px-5 h-full text-[11px] font-black uppercase tracking-widest transition-colors hover:text-white"
                 style={{ color: active ? '#fbbf24' : 'rgba(255,255,255,0.4)' }}
               >
-                <Icon className={`w-3.5 h-3.5 transition-colors ${active ? 'text-amber-400' : 'text-white/20'}`} />
+                <span className="relative">
+                  <Icon className={`w-3.5 h-3.5 transition-colors ${active ? 'text-amber-400' : 'text-white/20'}`} />
+                  {isMessagesLink && displayUnreadRoomCount > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black leading-4 text-center">
+                      {formatBadge(displayUnreadRoomCount)}
+                    </span>
+                  )}
+                </span>
                 <span className="relative z-10">{link.name}</span>
               </Link>
             );
@@ -107,6 +204,7 @@ const Navbar = () => {
           {navLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(link.href);
+            const isMessagesLink = link.href === "/conversations";
             return (
               <Link
                 key={link.href}
@@ -119,6 +217,11 @@ const Navbar = () => {
               >
                 <Icon className={active ? 'text-amber-500' : 'text-white/20'} size={20} />
                 {link.name}
+                {isMessagesLink && displayUnreadRoomCount > 0 && (
+                  <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black leading-5 text-center">
+                    {formatBadge(displayUnreadRoomCount)}
+                  </span>
+                )}
               </Link>
             );
           })}
