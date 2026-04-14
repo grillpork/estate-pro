@@ -28,6 +28,8 @@ import {
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import PropertyGallery from "@/components/PropertyGallery";
+import NearbyLandmarks from "@/components/NearbyLandmarks";
+import PropertyMap from "@/components/PropertyMap";
 import { api } from "@/lib/api";
 
 export default function PropertyDetailPage() {
@@ -201,40 +203,6 @@ export default function PropertyDetailPage() {
                     VIEW COMPLETE DETAILS <ArrowRight className="w-4 h-4" />
                  </button>
               </section>
-
-              {/* Amenities Grid */}
-              <section className="pt-10">
-                 <h3 className="text-xs font-black uppercase tracking-[.3em] text-white/20 mb-8">Amenities</h3>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12">
-                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
-                       <Utensils size={18} className="text-amber-500" /> Kitchen Area
-                    </div>
-                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
-                       <Car size={18} className="text-amber-500" /> Free Parking
-                    </div>
-                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
-                       <ShieldCheck size={18} className="text-amber-500" /> Security 24h
-                    </div>
-                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
-                       <Waves size={18} className="text-amber-500" /> Swimming Pool
-                    </div>
-                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
-                       <Dumbbell size={18} className="text-amber-500" /> Fitness Center
-                    </div>
-                    <div className="flex items-center gap-4 text-white/80 font-bold border-b border-white/5 pb-4">
-                       <Wifi size={18} className="text-amber-500" /> High-speed Wi-Fi
-                    </div>
-                 </div>
-              </section>
-
-              {/* Reviews Preview (Mock) */}
-              <section className="pt-10 border-t border-white/5">
-                 <div className="flex items-center gap-4 mb-6">
-                    <Star className="fill-amber-500 text-amber-500" size={24} />
-                    <span className="text-2xl font-black">4.92</span>
-                    <span className="text-white/20 font-bold">• 12 Reviews</span>
-                 </div>
-              </section>
             </div>
           </div>
 
@@ -286,6 +254,77 @@ export default function PropertyDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Full Width Sections */}
+        <div className="mt-24 space-y-24">
+           {/* Amenities Grid */}
+           <section className="pt-16 border-t border-white/5">
+              <h3 className="text-xs font-black uppercase tracking-[.3em] text-white/20 mb-12">Amenities</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-12">
+                 <div className="flex items-center gap-4 text-white font-black text-lg py-6 border-b border-white/5">
+                    <Utensils size={24} className="text-amber-500" /> Kitchen Area
+                 </div>
+                 <div className="flex items-center gap-4 text-white font-black text-lg py-6 border-b border-white/5">
+                    <Car size={24} className="text-amber-500" /> Free Parking
+                 </div>
+                 <div className="flex items-center gap-4 text-white font-black text-lg py-6 border-b border-white/5">
+                    <ShieldCheck size={24} className="text-amber-500" /> Security 24h
+                 </div>
+                 <div className="flex items-center gap-4 text-white font-black text-lg py-6 border-b border-white/5">
+                    <Waves size={24} className="text-amber-500" /> Swimming Pool
+                 </div>
+                 <div className="flex items-center gap-4 text-white font-black text-lg py-6 border-b border-white/5">
+                    <Dumbbell size={24} className="text-amber-500" /> Fitness Center
+                 </div>
+                 <div className="flex items-center gap-4 text-white font-black text-lg py-6 border-b border-white/5">
+                    <Wifi size={24} className="text-amber-500" /> High-speed Wi-Fi
+                 </div>
+              </div>
+           </section>
+
+           {/* Nearby Landmarks */}
+           <NearbyLandmarks 
+             lat={property.latitude} 
+             lng={property.longitude} 
+           />
+
+           <PropertyMap 
+             lat={property.latitude} 
+             lng={property.longitude}
+             propertyName={property.name}
+             address={`${property.district}, ${property.province}`}
+           />
+
+           {/* Reviews Section */}
+           <section className="pt-16 border-t border-white/5">
+              <div className="flex items-center gap-6 mb-12">
+                 <div className="flex items-center gap-3">
+                    <Star className="fill-amber-500 text-amber-500" size={32} />
+                    <span className="text-5xl font-black">4.92</span>
+                 </div>
+                 <div className="h-12 w-px bg-white/10"></div>
+                 <span className="text-white/30 font-black uppercase tracking-widest text-sm">12 Verified Reviews</span>
+              </div>
+              
+              {/* Mock Review Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {[1, 2].map((i) => (
+                    <div key={i} className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5">
+                       <div className="flex items-center gap-4 mb-6">
+                          <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 font-bold">U{i}</div>
+                          <div>
+                             <h5 className="font-black text-white">Verified User</h5>
+                             <p className="text-white/20 text-xs font-bold">2 months ago</p>
+                          </div>
+                       </div>
+                       <p className="text-white/60 leading-relaxed">
+                          "Excellent property and very professional service. The location is perfect with easy access to the station. Highly recommended!"
+                       </p>
+                    </div>
+                 ))}
+              </div>
+           </section>
         </div>
       </div>
     </div>
