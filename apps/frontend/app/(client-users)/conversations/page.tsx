@@ -6,19 +6,47 @@ import { api } from "@/lib/api";
 import {
   MessageSquare,
   User,
-  Calendar,
-  ChevronRight,
-  Users,
-  Star,
-  Plus,
-  Trash2,
   Send,
   ArrowLeft,
   RefreshCw,
-  Bot,
-  Info,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+
+const PROPERTY_CARD_PREFIX = "__PROPERTY_CARD__:";
+
+type UserLite = {
+  id: number;
+  username: string;
+  avatar?: string | null;
+  imagePath?: string | null;
+  lastSeen?: string | null;
+};
+
+type Conversation = {
+  id: number;
+  user1Id: number;
+  user2Id: number;
+  propertyId?: number | null;
+};
+
+type Message = {
+  id: number;
+  conversationId: number;
+  senderId: number | null;
+  content: string;
+  createdAt: string;
+};
+
+type PropertyCardPayload = {
+  propertyId: number;
+  name?: string;
+  price?: number;
+  district?: string;
+  province?: string;
+  imageUrl?: string | null;
+  url?: string;
+};
 
 export default function MessengerPage() {
   const router = useRouter();
@@ -26,29 +54,29 @@ export default function MessengerPage() {
   const initialId = searchParams.get("id");
 
   // List States
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<UserLite[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [creating, setCreating] = useState<number | null>(null);
-
+  const [currentUser, setCurrentUser] = useState<UserLite | null>(null);
   // Chat Room States
   const [selectedId, setSelectedId] = useState<string | null>(initialId);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const shouldForceScrollRef = useRef(false);
 
   // Fetch initial data (Conversations & Users)
   useEffect(() => {
     const initData = async () => {
-      let user = null;
+      let user: UserLite | null = null;
       const userStr = localStorage.getItem("user");
       if (userStr) {
         try {
-          user = JSON.parse(userStr);
+          user = JSON.parse(userStr) as UserLite;
           setCurrentUser(user);
-        } catch (e) {
+        } catch {
           console.error("User parse error");
         }
       }
@@ -61,7 +89,7 @@ export default function MessengerPage() {
             setCurrentUser(user);
             localStorage.setItem("user", JSON.stringify(user));
           }
-        } catch (e) {
+        } catch {
           alert("กรุณาเข้าสู่ระบบก่อนใช้งานครับ");
           router.push("/auth/sign-in");
           return;
@@ -73,9 +101,9 @@ export default function MessengerPage() {
           api.get("/conversations"),
           api.get("/api/users"),
         ]);
-        setConversations(convRes.data || []);
+        setConversations((convRes.data || []) as Conversation[]);
         setAvailableUsers(
-          (userRes.data || []).filter((u: any) => u.id !== user?.id),
+          ((userRes.data || []) as UserLite[]).filter((u) => u.id !== user?.id),
         );
       } catch (error) {
         console.error("Fetch data error:", error);
@@ -84,30 +112,60 @@ export default function MessengerPage() {
       }
     };
     initData();
-  }, []);
+  }, [router]);
 
   // Fetch messages when selectedId changes
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
+      prevMessageCountRef.current = 0;
       return;
     }
 
+    let isActive = true;
+    let isFirstLoad = true;
+    shouldForceScrollRef.current = true;
+    prevMessageCountRef.current = 0;
+
     const fetchMessages = async () => {
       try {
-        if (!messagesLoading && messages.length === 0) setMessagesLoading(true);
+        if (isFirstLoad) {
+          setMessagesLoading(true);
+        } else if (typeof document !== "undefined" && document.hidden) {
+          return;
+        }
+
         const res = await api.get(`/conversations/${selectedId}/messages`);
-        setMessages(res.data || []);
+        if (!isActive) return;
+
+        const nextMessages = (res.data || []) as Message[];
+        setMessages((prevMessages) => {
+          const unchanged =
+            prevMessages.length === nextMessages.length &&
+            prevMessages.every(
+              (m: Message, i: number) =>
+                m.id === nextMessages[i]?.id &&
+                m.content === nextMessages[i]?.content &&
+                m.createdAt === nextMessages[i]?.createdAt,
+            );
+          return unchanged ? prevMessages : nextMessages;
+        });
       } catch (e) {
         console.error("Fetch messages error:", e);
       } finally {
-        setMessagesLoading(false);
+        if (isFirstLoad && isActive) {
+          setMessagesLoading(false);
+        }
+        isFirstLoad = false;
       }
     };
 
     fetchMessages();
     const interval = setInterval(fetchMessages, 3000); // Polling
-    return () => clearInterval(interval);
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
   }, [selectedId]);
 
   // Auto Scroll to bottom
@@ -121,32 +179,21 @@ export default function MessengerPage() {
   };
 
   useEffect(() => {
-    if (messages.length > 0) {
-      const timer = setTimeout(() => scrollToBottom("smooth"), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [messages.length]);
+    const container = scrollRef.current;
+    if (!container || messages.length === 0) return;
 
-  const handleStartChat = async (targetUser: any) => {
-    if (!currentUser) return;
-    setCreating(targetUser.id);
-    try {
-      const res = await api.post("/conversations", {
-        user1Id: currentUser.id,
-        user2Id: targetUser.id,
-      });
-      if (res.data) {
-        setSelectedId(res.data.id.toString());
-        // Refresh list
-        const convRes = await api.get("/conversations");
-        setConversations(convRes.data);
-      }
-    } catch (error) {
-      console.error("Start chat error:", error);
-    } finally {
-      setCreating(null);
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isNearBottom = distanceFromBottom < 120;
+    const hasNewMessage = messages.length > prevMessageCountRef.current;
+
+    if (shouldForceScrollRef.current || (hasNewMessage && isNearBottom)) {
+      scrollToBottom(prevMessageCountRef.current === 0 ? "auto" : "smooth");
+      shouldForceScrollRef.current = false;
     }
-  };
+
+    prevMessageCountRef.current = messages.length;
+  }, [messages, selectedId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,27 +203,16 @@ export default function MessengerPage() {
       const response = await api.post(`/conversations/${selectedId}/messages`, {
         content: newMessage,
       });
-      setMessages([...messages, response.data]);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        response.data as Message,
+      ]);
       setNewMessage("");
-      setTimeout(() => scrollToBottom("smooth"), 50);
+      shouldForceScrollRef.current = true;
     } catch (error) {
       console.error("Send error:", error);
     }
   };
-
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!confirm("ลบห้องสนทนานี้ถาวร?")) return;
-    try {
-      await api.delete(`/conversations/${id}`);
-      setConversations(conversations.filter((c) => c.id.toString() !== id));
-      if (selectedId === id) setSelectedId(null);
-    } catch (e) {
-      console.error("Delete error:", e);
-    }
-  };
-
   // Heartbeat Effect
   useEffect(() => {
     if (!currentUser) return;
@@ -187,7 +223,11 @@ export default function MessengerPage() {
   }, [currentUser]);
 
   // UI Helpers
-  const getOtherUser = (conv: any) => {
+  const getOtherUser = (conv: Conversation | undefined): UserLite => {
+    if (!conv) {
+      return { id: 0, username: "Unknown user" };
+    }
+
     const otherId =
       conv.user1Id === currentUser?.id ? conv.user2Id : conv.user1Id;
     return otherId === 1
@@ -198,7 +238,7 @@ export default function MessengerPage() {
         };
   };
 
-  const isOnline = (user: any) => {
+  const isOnline = (user?: UserLite | null) => {
     if (!user || !user.lastSeen) return false;
     const lastSeenDate = new Date(user.lastSeen);
     const now = new Date();
@@ -206,12 +246,27 @@ export default function MessengerPage() {
     return now.getTime() - lastSeenDate.getTime() < 60000;
   };
 
+  const parsePropertyCard = (content: string): PropertyCardPayload | null => {
+    if (!content || typeof content !== "string") return null;
+    if (!content.startsWith(PROPERTY_CARD_PREFIX)) return null;
+
+    try {
+      const payload = JSON.parse(
+        content.replace(PROPERTY_CARD_PREFIX, ""),
+      ) as Partial<PropertyCardPayload>;
+      if (!payload?.propertyId) return null;
+      return payload as PropertyCardPayload;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="bg-[#0a0a0f] h-screen flex flex-col text-white pt-16 overflow-hidden">
       <Navbar />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden divide-x divide-white/5">
-        {/* Sidebar: Conversations & Agents */}
+        {/* Sidebar: Conversations */}
         <div
           className={`flex-col bg-[#111118]/20 w-full sm:w-80 lg:w-[380px] ${selectedId ? "hidden sm:flex" : "flex"}`}
         >
@@ -223,7 +278,7 @@ export default function MessengerPage() {
             </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-8 pb-10">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pb-10">
             {/* Section: Chats */}
             <div className="space-y-4">
               <h2 className="px-3 text-[10px] font-black uppercase text-amber-500/60 tracking-[0.2em] flex items-center gap-2">
@@ -256,15 +311,16 @@ export default function MessengerPage() {
                       <div className="flex items-center gap-4">
                         <div className="relative">
                           <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 overflow-hidden shadow-inner">
-                            {/* @ts-ignore */}
                             {other.avatar || other.imagePath ? (
-                              <img
+                              <Image
                                 className="w-full h-full object-cover"
                                 src={
-                                  other.avatar ||
-                                  `http://localhost:4000/${other.imagePath}`
+                                  other.avatar || `http://localhost:4000/${other.imagePath}`
                                 }
-                                alt="v"
+                                alt="avatar"
+                                width={48}
+                                height={48}
+                                unoptimized
                               />
                             ) : (
                               <User
@@ -277,7 +333,6 @@ export default function MessengerPage() {
                           )}
                         </div>
                         <div>
-                          {/* @ts-ignore */}
                           <h3
                             className={`font-black text-sm tracking-tight ${isSelected ? "text-black" : "text-white/80"}`}
                           >
@@ -290,73 +345,10 @@ export default function MessengerPage() {
                           </p>
                         </div>
                       </div>
-                      {!isSelected && (
-                        <button
-                          onClick={(e) => handleDelete(e, conv.id.toString())}
-                          className="p-2 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   );
                 })
               )}
-            </div>
-
-            {/* Section: Recommended Agents */}
-            <div className="space-y-4">
-              <h2 className="px-3 text-[10px] font-black uppercase text-white/30 tracking-[0.2em] flex items-center gap-2">
-                <Users className="w-3 h-3" /> เอเจนต์ที่แนะนำ
-              </h2>
-              <div className="grid gap-2 px-1">
-                {availableUsers
-                  .filter((user) => {
-                    const hasChat = conversations.some(
-                      (c) =>
-                        (c.user1Id === currentUser?.id &&
-                          c.user2Id === user.id) ||
-                        (c.user1Id === user.id &&
-                          c.user2Id === currentUser?.id),
-                    );
-                    return !hasChat;
-                  })
-                  .slice(0, 8)
-                  .map((user) => {
-                    const online = isOnline(user);
-                    return (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-all">
-                              <User className="w-5 h-5" />
-                            </div>
-                            {online && (
-                              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-[#111118]" />
-                            )}
-                          </div>
-                          <p className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">
-                            {user.username || `User #${user.id}`}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleStartChat(user)}
-                          className="p-2 rounded-xl hover:bg-amber-500 hover:text-black transition-all"
-                          title="เริ่มสนทนา"
-                        >
-                          {creating === user.id ? (
-                            <RefreshCw className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Plus className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
             </div>
           </div>
         </div>
@@ -381,12 +373,11 @@ export default function MessengerPage() {
                   </div>
                   <div>
                     <h2 className="font-black text-lg tracking-tight">
-                      {/* @ts-ignore */}
                       {
                         getOtherUser(
                           conversations.find(
                             (c) => c.id.toString() === selectedId,
-                          ) || {},
+                          ),
                         ).username
                       }
                     </h2>
@@ -394,7 +385,7 @@ export default function MessengerPage() {
                       getOtherUser(
                         conversations.find(
                           (c) => c.id.toString() === selectedId,
-                        ) || {},
+                        ),
                       ),
                     ) ? (
                       <div className="flex items-center gap-1.5 text-[10px] text-green-500 font-bold uppercase tracking-tighter">
@@ -429,23 +420,62 @@ export default function MessengerPage() {
                     </p>
                   </div>
                 ) : (
-                  messages.map((msg, idx) => {
+                  messages.map((msg) => {
                     const isMe = msg.senderId === currentUser?.id;
+                    const propertyCard = parsePropertyCard(msg.content);
                     return (
                       <div
                         key={msg.id}
                         className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`max-w-[75%] p-4 rounded-[28px] shadow-2xl transition-all hover:scale-[1.02] ${
+                          className={`max-w-[75%] p-4 rounded-[28px] shadow-2xl ${
                             isMe
                               ? "bg-amber-500 text-black font-bold rounded-tr-none"
                               : "bg-[#111118] border border-white/5 text-white/90 rounded-tl-none"
                           }`}
                         >
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {msg.content}
-                          </p>
+                          {propertyCard ? (
+                            <a
+                              href={propertyCard.url || `/properties/${propertyCard.propertyId}`}
+                              className="block"
+                            >
+                              <div
+                                className={`overflow-hidden rounded-2xl border cursor-pointer ${isMe ? "border-black/20 bg-black/10" : "border-white/10 bg-white/5"}`}
+                              >
+                                {propertyCard.imageUrl ? (
+                                  <Image
+                                    src={propertyCard.imageUrl}
+                                    alt={propertyCard.name || "property cover"}
+                                    width={800}
+                                    height={320}
+                                    className="w-full h-44 object-cover"
+                                    unoptimized
+                                  />
+                                ) : null}
+                                <div className="p-3 space-y-1.5">
+                                  <p className="text-[10px] uppercase tracking-wider opacity-70">
+                                    Property
+                                  </p>
+                                  <p className="text-sm font-black leading-snug">
+                                    {propertyCard.name || `Property #${propertyCard.propertyId}`}
+                                  </p>
+                                  <p className="text-xs opacity-80">
+                                    {propertyCard.district && propertyCard.province
+                                      ? `${propertyCard.district}, ${propertyCard.province}`
+                                      : "-"}
+                                  </p>
+                                  <p className="text-sm font-black">
+                                    ฿{Intl.NumberFormat("th-TH").format(propertyCard.price || 0)}
+                                  </p>
+                                </div>
+                              </div>
+                            </a>
+                          ) : (
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {msg.content}
+                            </p>
+                          )}
                           <p
                             className={`text-[9px] mt-2 opacity-30 ${isMe ? "text-black" : "text-white"}`}
                           >

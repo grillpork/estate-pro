@@ -32,6 +32,8 @@ import NearbyLandmarks from "@/components/NearbyLandmarks";
 import PropertyMap from "@/components/PropertyMap";
 import { api } from "@/lib/api";
 
+const PROPERTY_CARD_PREFIX = "__PROPERTY_CARD__:";
+
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -69,9 +71,38 @@ export default function PropertyDetailPage() {
       const res = await api.post("/conversations", {
         user1Id: user.id,
         user2Id: property.userId,
+        propertyId: property.id,
       });
 
       if (res.data && res.data.id) {
+        const coverImage =
+          property?.images?.[0]?.imagePath
+            ? `http://localhost:4000/${property.images[0].imagePath}`
+            : property?.mainImage?.imagePath
+              ? `http://localhost:4000/${property.mainImage.imagePath}`
+              : null;
+
+        const propertyCardPayload = {
+          propertyId: property.id,
+          name: property.name,
+          price: property.startingPrice || 0,
+          district: property.district || "",
+          province: property.province || "",
+          imageUrl: coverImage,
+          url: `/properties/${property.id}`,
+        };
+
+        try {
+          await api.post(`/conversations/${res.data.id}/messages`, {
+            content: `${PROPERTY_CARD_PREFIX}${JSON.stringify(propertyCardPayload)}`,
+          });
+          await api.post(`/conversations/${res.data.id}/messages`, {
+            content: "ฉันสนใจอสังหานี้ครับ/ค่ะ",
+          });
+        } catch (messageError) {
+          console.error("Failed to send auto starter messages:", messageError);
+        }
+
         router.push(`/conversations?id=${res.data.id}`);
       }
     } catch (error: any) {

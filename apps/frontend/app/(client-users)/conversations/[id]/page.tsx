@@ -9,7 +9,6 @@ import {
   User,
   ArrowLeft,
   RefreshCw,
-  Terminal,
   Bot,
 } from "lucide-react";
 import Link from "next/link";
@@ -150,7 +149,7 @@ export default function ChatRoomPage() {
         </div>
 
         {/* Webhook Testing Info (Sidebar on large screens) */}
-        <div className="w-full sm:w-64 bg-[#111118]/30 border-t sm:border-t-0 sm:border-l border-white/5 p-4 hidden lg:block">
+        {/* <div className="w-full sm:w-64 bg-[#111118]/30 border-t sm:border-t-0 sm:border-l border-white/5 p-4 hidden lg:block">
            <div className="flex items-center gap-2 text-amber-500 mb-4 px-1">
               <Bot className="w-4 h-4" />
               <h4 className="text-[10px] font-black uppercase tracking-widest">Webhook Support</h4>
@@ -163,7 +162,7 @@ export default function ChatRoomPage() {
               {`{ "conversationId": ${id}, "content": "..." }`}
            </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Input Area */}
       <div className="bg-[#111118]/80 backdrop-blur-md border-t border-white/5 p-4 sm:p-6">
