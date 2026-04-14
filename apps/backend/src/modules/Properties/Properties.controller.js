@@ -2,7 +2,7 @@ import { eq, inArray } from 'drizzle-orm'
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../database/schema/db.js'
-import { properties, propertyImages, brands, notifications } from '../../database/schema/index.js'
+import { properties, propertyImages, brands, notifications, users } from '../../database/schema/index.js'
 
 // Helper to fetch property with joins
 const getPropertyByIdWithJoins = async (id) => {
@@ -10,11 +10,22 @@ const getPropertyByIdWithJoins = async (id) => {
         .select({
             property: properties,
             mainImage: propertyImages,
-            brand: brands
+            brand: brands,
+            user: {
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                username: users.username,
+                email: users.email,
+                imagePath: users.imagePath,
+                verification: users.verification,
+                phoneNumber: users.phoneNumber
+            }
         })
         .from(properties)
         .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
         .leftJoin(brands, eq(properties.brandId, brands.id))
+        .leftJoin(users, eq(properties.userId, users.id))
         .where(eq(properties.id, Number(id)))
 
     const row = result[0]
@@ -30,6 +41,7 @@ const getPropertyByIdWithJoins = async (id) => {
         ...row.property,
         mainImage: row.mainImage,
         brand: row.brand,
+        user: row.user,
         images: allImages
     }
 }

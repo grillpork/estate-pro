@@ -221,17 +221,41 @@ export default function PropertyDetailPage() {
                 {/* Card 1 */}
                 <div className="p-7 rounded-[1.5rem] bg-white/3 border border-white/5 backdrop-blur-2xl transition-all duration-300">
                    <div className="flex items-start justify-between mb-4">
-                      <div className="space-y-1">
-                         <h4 className="font-black text-white text-lg tracking-tight">Owner Contact</h4>
-                         <p className="text-white/30 text-xs font-semibold">{property.ownerName || 'Verified Agent'}</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                         <User className="text-amber-500" size={20} strokeWidth={2.5} />
+                      <div className="flex items-center gap-4">
+                        {property.user?.imagePath ? (
+                          <img 
+                            src={`http://localhost:4000/${property.user.imagePath}`} 
+                            alt={property.user.firstName}
+                            className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/10"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                             <User className="text-amber-500" size={24} strokeWidth={2.5} />
+                          </div>
+                        )}
+                        <div className="space-y-0.5">
+                           <h4 className="font-black text-white text-lg tracking-tight">
+                             {property.user ? `${property.user.firstName} ${property.user.lastName}` : (property.ownerName || 'Verified Agent')}
+                           </h4>
+                           <p className="text-white/30 text-xs font-semibold">
+                             {property.user?.email || 'Authorized Representative'}
+                           </p>
+                           {property.user?.phoneNumber && (
+                             <p className="text-amber-500/60 text-[10px] font-black tracking-widest uppercase mt-1">
+                               {property.user.phoneNumber}
+                             </p>
+                           )}
+                        </div>
                       </div>
                    </div>
-                   <div className="flex items-center gap-2 text-white/20 text-[9px] font-black uppercase tracking-widest pt-2 border-t border-white/5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/40" />
-                      Pro Verified
+                   <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2 text-white/20 text-[9px] font-black uppercase tracking-widest">
+                         <ShieldCheck className={`w-3.5 h-3.5 ${property.user?.verification === 'verified' ? 'text-emerald-500' : 'text-emerald-500/40'}`} />
+                         {property.user?.verification === 'verified' ? 'Verified Member' : 'Pro Verified'}
+                      </div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-amber-500/50">
+                        Agent ID: #00{property.user?.id || '---'}
+                      </div>
                    </div>
                 </div>
 
