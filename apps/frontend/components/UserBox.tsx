@@ -65,15 +65,16 @@ const UserBox = ({
     >
       <div className="flex items-center gap-3 overflow-hidden">
         <div className="w-9 h-9 rounded-lg bg-neutral-700 flex items-center justify-center text-white/40 group-hover:bg-amber-500/20 group-hover:text-amber-400 transition-colors overflow-hidden">
-          {user.imagePath ? (
-            <img 
-              src={`http://localhost:4000/${user.imagePath.replace(/\\/g, '/')}`} 
-              alt={user.username} 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User size={20} />
-          )}
+          <img 
+            src={user.imagePath 
+              ? `http://localhost:4000/${user.imagePath.replace(/\\/g, '/')}` 
+              : "/images/userIcon.png"} 
+            alt={user.username} 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/images/userIcon.png";
+            }}
+          />
         </div>
         <div className="flex flex-col overflow-hidden text-left">
           <p className="text-sm font-medium text-white truncate group-hover:text-amber-400 transition-colors">

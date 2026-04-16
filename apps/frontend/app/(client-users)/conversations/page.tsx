@@ -374,22 +374,21 @@ export default function MessengerPage() {
                       <div className="flex items-center gap-4">
                         <div className="relative">
                           <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 overflow-hidden shadow-inner">
-                            {other.avatar || other.imagePath ? (
-                              <Image
-                                className="w-full h-full object-cover"
-                                src={
-                                  other.avatar || `http://localhost:4000/${other.imagePath}`
-                                }
-                                alt="avatar"
-                                width={48}
-                                height={48}
-                                unoptimized
-                              />
-                            ) : (
-                              <User
-                                className={`w-6 h-6 ${isSelected ? "text-black/40" : "text-white/20"}`}
-                              />
-                            )}
+                            <Image
+                              className="w-full h-full object-cover"
+                              src={
+                                other.avatar || (other.imagePath 
+                                  ? `http://localhost:4000/${other.imagePath.replace(/\\/g, '/')}` 
+                                  : "/images/userIcon.png")
+                              }
+                              alt="avatar"
+                              width={48}
+                              height={48}
+                              unoptimized
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                              }}
+                            />
                           </div>
                           {online && (
                             <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-[#111118]" />

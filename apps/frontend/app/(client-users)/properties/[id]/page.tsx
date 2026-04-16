@@ -253,17 +253,16 @@ export default function PropertyDetailPage() {
                 <div className="p-7 rounded-[1.5rem] bg-white/3 border border-white/5 backdrop-blur-2xl transition-all duration-300">
                    <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-4">
-                        {property.user?.imagePath ? (
-                          <img 
-                            src={`http://localhost:4000/${property.user.imagePath}`} 
-                            alt={property.user.firstName}
-                            className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/10"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                             <User className="text-amber-500" size={24} strokeWidth={2.5} />
-                          </div>
-                        )}
+                        <img 
+                          src={property.user?.imagePath 
+                            ? `http://localhost:4000/${property.user.imagePath.replace(/\\/g, '/')}` 
+                            : "/images/userIcon.png"} 
+                          alt={property.user?.firstName}
+                          className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/10"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                          }}
+                        />
                         <div className="space-y-0.5">
                            <h4 className="font-black text-white text-lg tracking-tight">
                              {property.user ? `${property.user.firstName} ${property.user.lastName}` : (property.ownerName || 'Verified Agent')}

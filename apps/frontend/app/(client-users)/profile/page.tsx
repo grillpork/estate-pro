@@ -136,17 +136,16 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row items-end gap-6 mb-12">
           <div className="relative group">
             <div className="w-40 h-40 rounded-full bg-[#111118] border-[6px] border-[#0a0a0f] overflow-hidden shadow-2xl relative">
-              {user?.imagePath ? (
-                <img 
-                  src={`http://localhost:4000/${user.imagePath}`} 
-                  className="w-full h-full object-cover" 
-                  alt="Avatar" 
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-white/5">
-                  <User size={64} className="text-white/10" />
-                </div>
-              )}
+              <img 
+                src={user?.imagePath 
+                  ? `http://localhost:4000/${user.imagePath}` 
+                  : "/images/userIcon.png"} 
+                className="w-full h-full object-cover" 
+                alt="Avatar" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                }}
+              />
               {/* Photo Upload Trigger */}
               <button 
                 onClick={() => fileInputRef.current?.click()}
