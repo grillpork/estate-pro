@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, Sparkles, ChevronsUpDown, Building2 } from "lucide-react";
+import { LogOut, Settings, User, Sparkles, ChevronsUpDown, Building2, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authService } from "@/services/auth";
 
@@ -124,6 +124,17 @@ const UserBox = ({
             >
               <Building2 size={16} />
               My Properties
+            </button>
+            <button 
+               onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                router.push("/favorites");
+              }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors"
+            >
+              <Heart size={16} />
+              Your Favorites
             </button>
             <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors">
               <Settings size={16} />
