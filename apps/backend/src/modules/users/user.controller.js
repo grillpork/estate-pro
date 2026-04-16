@@ -1,6 +1,6 @@
 import { db } from '../../database/schema/db.js';
-import { users } from '../../database/schema/index.js';
-import { eq } from 'drizzle-orm';
+import { users, properties, propertyImages, brands } from '../../database/schema/index.js';
+import { eq, and } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,6 +17,65 @@ export const getUserById = async (req, res) => {
         .from(users)
         .where(eq(users.id, Number(id)));
     return res.json(user);
+}
+
+//public
+export const getPublicProfile = async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (!id) return res.status(400).json({ message: 'User ID is required' });
+
+        // 1. Fetch user (exclude sensitive data like password)
+        const [user] = await db
+            .select({
+                id: users.id,
+                username: users.username,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                imagePath: users.imagePath,
+                phoneNumber: users.phoneNumber,
+                verification: users.verification,
+                createdAt: users.createdAt,
+            })
+            .from(users)
+            .where(eq(users.id, Number(id)));
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 2. Fetch approved properties for this user
+        const userProperties = await db
+            .select({
+                property: properties,
+                mainImage: propertyImages.imagePath,
+                brand: brands,
+            })
+            .from(properties)
+            .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
+            .leftJoin(brands, eq(properties.brandId, brands.id))
+            .where(
+                and(
+                    eq(properties.userId, Number(id)),
+                    eq(properties.status, 'approved')
+                )
+            );
+
+        // Format properties list
+        const formattedProperties = userProperties.map(row => ({
+            ...row.property,
+            mainImage: row.mainImage,
+            brand: row.brand,
+        }));
+
+        return res.json({
+            user,
+            properties: formattedProperties
+        });
+    } catch (err) {
+        console.error('getPublicProfile error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 }
 
 export const updateUser = async (req, res) => {

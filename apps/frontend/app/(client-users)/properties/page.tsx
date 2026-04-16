@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import PropertyCards from "@/components/PropertyCards";
+import PropertyCard from "@/components/PropertyCard";
 
 interface PropertyListing {
   id: string;
@@ -161,13 +161,14 @@ export default function PropertiesListingPage() {
         </section>
 
         {/* Properties Grid */}
-        <div className="relative -mt-20 z-20">
-          <PropertyCards 
-            data={properties} 
-            title={null} 
-            subtitle={null} 
-            showViewAll={false} 
-          />
+        <div className="relative -mt-20 z-20 max-w-[90rem] mx-auto px-6 mb-20">
+          {properties.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {properties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Empty State */}

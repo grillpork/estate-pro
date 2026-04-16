@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, Building2, Terminal } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, Building2, Terminal, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import ReportModal from "./ReportModal";
 
 const Footer = () => {
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   return (
     <footer className="relative bg-[#0e0e14] border-t border-white/3 pt-15 pb-10 overflow-hidden">
       {/* Background Glows - More sophisticated positioning */}
@@ -71,6 +74,15 @@ const Footer = () => {
                   </button>
                 </li>
               ))}
+              <li>
+                <button 
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="text-red-500/50 hover:text-red-500 text-sm transition-all duration-300 font-bold hover:translate-x-1 text-left flex items-center gap-2"
+                >
+                  <AlertCircle size={14} />
+                  แจ้งปัญหาการใช้งานเว็บ
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -113,6 +125,13 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      <ReportModal 
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        initialType="website"
+        targetName="Website Issue"
+      />
     </footer>
   );
 };

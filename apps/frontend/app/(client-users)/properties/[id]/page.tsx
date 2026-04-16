@@ -23,7 +23,7 @@ import {
   Car,
   Waves,
   Dumbbell,
-  Wifi
+  Wifi,
 } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -252,31 +252,47 @@ export default function PropertyDetailPage() {
                 {/* Card 1 */}
                 <div className="p-7 rounded-[1.5rem] bg-white/3 border border-white/5 backdrop-blur-2xl transition-all duration-300">
                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <img 
-                          src={property.user?.imagePath 
-                            ? `http://localhost:4000/${property.user.imagePath.replace(/\\/g, '/')}` 
-                            : "/images/userIcon.png"} 
-                          alt={property.user?.firstName}
-                          className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/10"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/images/userIcon.png";
-                          }}
-                        />
-                        <div className="space-y-0.5">
-                           <h4 className="font-black text-white text-lg tracking-tight">
-                             {property.user ? `${property.user.firstName} ${property.user.lastName}` : (property.ownerName || 'Verified Agent')}
-                           </h4>
-                           <p className="text-white/30 text-xs font-semibold">
-                             {property.user?.email || 'Authorized Representative'}
-                           </p>
-                           {property.user?.phoneNumber && (
-                             <p className="text-amber-500/60 text-[10px] font-black tracking-widest uppercase mt-1">
-                               {property.user.phoneNumber}
+                      {property.user?.id ? (
+                        <Link href={`/user/${property.user.id}`} className="flex items-center gap-4 group cursor-pointer">
+                          <img 
+                            src={property.user?.imagePath 
+                              ? `http://localhost:4000/${property.user.imagePath.replace(/\\/g, '/')}` 
+                              : "/images/userIcon.png"} 
+                            alt={property.user?.firstName || 'User'}
+                            className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/10 group-hover:ring-amber-500/50 transition-all duration-300"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                            }}
+                          />
+                          <div className="space-y-0.5 group-hover:translate-x-1 transition-transform duration-300">
+                             <h4 className="font-black text-white text-lg tracking-tight group-hover:text-amber-500 transition-colors">
+                               {`${property.user.firstName || ''} ${property.user.lastName || ''}`.trim() || property.user.username}
+                             </h4>
+                             <p className="text-white/30 text-xs font-semibold">
+                               {property.user.email || 'Authorized Representative'}
                              </p>
-                           )}
+                             {property.user?.phoneNumber && (
+                               <p className="text-amber-500/60 text-[10px] font-black tracking-widest uppercase mt-1">
+                                 {property.user.phoneNumber}
+                               </p>
+                             )}
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src="/images/userIcon.png"
+                            alt="Agent"
+                            className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/10"
+                          />
+                          <div className="space-y-0.5">
+                             <h4 className="font-black text-white text-lg tracking-tight">
+                               {property.ownerName || 'Verified Agent'}
+                             </h4>
+                             <p className="text-white/30 text-xs font-semibold">Authorized Representative</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                    </div>
                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
                       <div className="flex items-center gap-2 text-white/20 text-[9px] font-black uppercase tracking-widest">

@@ -13,4 +13,8 @@ export const favoritesService = {
     const response = await api.delete(`/favorites/${id}`);
     return response.data;
   },
+  toggleFavorite: async (propertyId: string) => {
+    const response = await api.post("/favorites/toggle", { propertyId });
+    return response.data;
+  },
 };

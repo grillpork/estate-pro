@@ -17,6 +17,7 @@ import { membershipPlansRouter } from './modules/membershipPlans/membershipPlans
 import { userSubscriptionsRouter } from './modules/userSubscriptions/userSubscriptions.routes.js'
 import uploadTestRouter from './modules/upload-test.routes.js'
 import adminRouter from './modules/admin/admin.routes.js'
+import { reportRouter } from './modules/reports/report.routes.js'
 
 const PORT = 4000
 
@@ -60,6 +61,9 @@ app.use('/', conversationsRouter)
 
 // Favorites routes
 app.use('/', favoritesRouter)
+
+// Reports routes
+app.use('/', reportRouter)
 
 // Membership Plans routes
 app.use('/', membershipPlansRouter)

@@ -12,6 +12,7 @@ import {
   Eye,
   MapPin,
   Building2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -115,8 +116,10 @@ export default function FavoritesPage() {
               <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em]">"Your Curated Selection of Premium Living"</p>
             </motion.div>
 
-            {/* DASHBOARD ACTIONS (Matches Screenshot & My Properties) */}
-            <div className="bg-[#111118]/80 backdrop-blur-xl border border-white/5 p-4 rounded-2xl mb-10 flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex flex-col gap-4">
+              {/* DASHBOARD ACTIONS (Matches Screenshot & My Properties) */}
+          
+            <div className="bg-[#111118]/80 backdrop-blur-xl border border-white/5 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
               <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 bg-white/5 rounded-xl border border-white/5 group focus-within:border-amber-500/30 transition-all">
                 <Search className="w-5 h-5 text-white/20 group-focus-within:text-amber-500" />
                 <input 
@@ -129,46 +132,32 @@ export default function FavoritesPage() {
               </div>
 
               <div className="flex items-center gap-4 w-full md:w-auto">
-                <button 
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/5 rounded-xl text-white/60 hover:text-white transition-all text-sm font-bold"
-                >
-                  <SlidersHorizontal size={18} />
-                  <span>คัดกรอง</span>
-                </button>
-                <div className="text-white/20 text-xs ml-4 whitespace-nowrap">
+                <div className="text-white/20 text-xs ml-0 md:ml-4 whitespace-nowrap">
                   แสดงทั้งหมด <span className="text-white font-bold">{filteredFavorites.length}</span> รายการ
                 </div>
               </div>
-            </div>
 
-            {/* CATEGORY FILTERS (Optional / Re-styled) */}
-            <AnimatePresence>
-              {isFilterOpen && (
-                <motion.div 
-                    initial={{ opacity: 0, height: 0, marginTop: -20 }}
-                    animate={{ opacity: 1, height: "auto", marginTop: 0 }}
-                    exit={{ opacity: 0, height: 0, marginTop: -20 }}
-                    className="overflow-hidden"
-                >
-                  <div className="flex flex-wrap items-center gap-2 bg-white/5 backdrop-blur-xl border border-white/5 p-2 rounded-2xl">
-                    {CATEGORY_FILTERS.map((filter) => (
-                      <button
-                        key={filter.id}
-                        onClick={() => setActiveFilter(filter.id)}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                          activeFilter === filter.id
-                            ? "bg-amber-500 text-[#0a0a0f] shadow-lg shadow-amber-500/20"
-                            : "text-white/40 hover:text-white hover:bg-white/5"
-                        }`}
-                      >
-                        {filter.label}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            </div>
+            
+
+            {/* CATEGORY FILTERS (Permanent) */}
+             <div className="flex flex-wrap items-center gap-2 bg-white/5 backdrop-blur-xl border border-white/5 p-2 rounded-2xl">
+                {CATEGORY_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => setActiveFilter(filter.id)}
+                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                      activeFilter === filter.id
+                        ? "bg-amber-500 text-[#0a0a0f] shadow-lg shadow-amber-500/20"
+                        : "text-white/40 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
           </div>
 
           {/* Content Grid */}
@@ -242,12 +231,12 @@ function FavoriteCard({ fav, onUnfavorite }: { fav: any, onUnfavorite: (id: stri
           </div>
         </div>
 
-        {/* Favorite Heart Toggle (Right) */}
+        {/* Remove Favorite Toggle (Right) */}
         <button 
           onClick={() => onUnfavorite(property.id)}
-          className="absolute top-4 right-4 p-2.5 rounded-xl bg-[#0a0a0f]/60 backdrop-blur-md border border-white/10 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 shadow-lg group/heart"
+          className="absolute top-4 right-4 p-2.5 rounded-xl bg-[#0a0a0f]/60 backdrop-blur-md border border-white/10 text-white/60 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300 shadow-lg group/close"
         >
-          <Heart size={18} fill="currentColor" className="group-hover/heart:scale-110 transition-transform" />
+          <X size={18} className="group-hover/close:scale-110 transition-transform" />
         </button>
       </div>
 

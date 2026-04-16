@@ -1,12 +1,13 @@
 import express from 'express';
 
-import { deleteUser, getAllUsers, updateUser, getUserById, uploadProfileImage } from './user.controller.js';
+import { deleteUser, getAllUsers, updateUser, getUserById, uploadProfileImage, getPublicProfile } from './user.controller.js';
 import { verifyToken } from '../../middleware/auth.middleware.js';
 import { upload, optimizeImage, setUploadFolder } from '../../middleware/upload.js';
 
 export const userRouter = express.Router()
     .get('/users', verifyToken, getAllUsers)
     .get('/users/:id', getUserById)
+    .get('/users/:id/public-profile', getPublicProfile)
     .patch('/users/:id', updateUser)
     .put('/users/:id/profile-image', verifyToken, setUploadFolder('user'), upload.any(), optimizeImage, uploadProfileImage)
     .delete('/users/:id', deleteUser)

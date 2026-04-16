@@ -13,7 +13,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAllReports } from "@/services/admin/report";
+import { getAllReports, updateReportStatus } from "@/services/admin/report";
+import { toast } from "react-hot-toast";
 
 const filterStatusOptions = [
   { id: 0, name: "all", label: "All Status" },
@@ -22,12 +23,22 @@ const filterStatusOptions = [
   { id: 3, name: "dismissed", label: "Dismissed" },
 ];
 
+const filterTypeOptions = [
+  { id: 0, name: "all", label: "All Types" },
+  { id: 1, name: "website", label: "Website Issue" },
+  { id: 2, name: "seller", label: "Seller Issue" },
+  { id: 3, name: "buyer", label: "Buyer Issue" },
+  { id: 4, name: "other", label: "Other" },
+];
+
 const ReportsList = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [filteredReports, setFilteredReports] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [filterType, setFilterType] = useState("all");
+  const [filterTypeDropdownOpen, setFilterTypeDropdownOpen] = useState(false);
   const [filterDate, setFilterDate] = useState("");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
@@ -84,8 +95,28 @@ const ReportsList = () => {
       );
     }
 
-    setFilteredReports(result);
-  }, [reports, filterStatus, searchTerm, filterDate]);
+    // Filter by Type
+    if (filterType !== "all") {
+      if (filterType === "other") {
+        result = result.filter(r => r.type && r.type.startsWith("อื่นๆ:"));
+      } else {
+        result = result.filter((r) => r.type?.toLowerCase() === filterType.toLowerCase());
+      }
+    }
+
+     setFilteredReports(result);
+   }, [reports, filterStatus, filterType, searchTerm, filterDate]);
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateReportStatus(parseInt(id), newStatus);
+      toast.success(`อัปเดตสถานะเป็น ${newStatus} เรียบร้อย`);
+      // Update local state
+      setReports(reports.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      toast.error("อัปเดตสถานะไม่สำเร็จ");
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -111,6 +142,13 @@ const ReportsList = () => {
       default:
         return <AlertCircle size={14} />;
     }
+  };
+
+  const getTypeDisplay = (type: string) => {
+    if (!type) return "Unknown";
+    if (type.startsWith("อื่นๆ:")) return type.replace("อื่นๆ:", "Other:");
+    const option = filterTypeOptions.find(o => o.name === type);
+    return option ? option.label : type;
   };
 
   return (
@@ -156,10 +194,77 @@ const ReportsList = () => {
             />
           </div>
 
-          {/* Filter Dropdown */}
+          {/* Type Filter Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+              onClick={() => {
+                setFilterTypeDropdownOpen(!filterTypeDropdownOpen);
+                setFilterDropdownOpen(false);
+              }}
+              className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-sm font-medium ${
+                filterTypeDropdownOpen
+                  ? "bg-[#1A1A1E] border-orange-500/50 text-white"
+                  : "bg-[#1A1A1E] border-[#27272A] text-neutral-400 hover:text-white"
+              }`}
+            >
+              <Filter size={16} />
+              <span className="hidden md:inline">
+                {filterTypeOptions.find((s) => s.name === filterType)
+                  ?.label || "Type"}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${
+                  filterTypeDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {filterTypeDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 top-full mt-2 w-48 bg-[#1A1A1E] border border-[#27272A] rounded-xl shadow-xl shadow-black/50 z-50 overflow-hidden"
+                >
+                  <div className="p-1">
+                    {filterTypeOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          setFilterType(option.name);
+                          setFilterTypeDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
+                          filterType === option.name
+                            ? "bg-orange-600/10 text-orange-400 font-medium"
+                            : "text-neutral-400 hover:bg-[#27272A] hover:text-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            filterType === option.name
+                              ? "bg-orange-500"
+                              : "bg-neutral-600"
+                          }`}
+                        />
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Status Filter Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                 setFilterDropdownOpen(!filterDropdownOpen);
+                 setFilterTypeDropdownOpen(false);
+              }}
               className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-sm font-medium ${
                 filterDropdownOpen
                   ? "bg-[#1A1A1E] border-indigo-500/50 text-white"
@@ -245,8 +350,11 @@ const ReportsList = () => {
                       {getStatusIcon(report.status)}
                       {report.status}
                     </div>
-                    <h3 className="text-base font-semibold text-white truncate">
-                      {report.title}
+                    <h3 className="text-base font-semibold text-white truncate flex items-center gap-2">
+                       {report.title}
+                       <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold uppercase tracking-wider shrink-0">
+                          {getTypeDisplay(report.type)}
+                       </span>
                     </h3>
                   </div>
 
@@ -256,15 +364,14 @@ const ReportsList = () => {
 
                   <div className="flex items-center gap-4 text-xs text-neutral-500">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                        {report.reporter?.image ? (
+                      <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 overflow-hidden">
                           <img
-                            src={report.reporter.image}
-                            className="w-full h-full rounded-full object-cover"
+                            src={report.reporter?.image || "/images/userIcon.png"}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                            }}
                           />
-                        ) : (
-                          <User size={10} />
-                        )}
                       </div>
                       <span className="text-neutral-300">
                         {report.reporter?.name ||
@@ -322,9 +429,12 @@ const ReportsList = () => {
                       <h3 className="text-sm font-semibold text-neutral-300 mb-1">
                         Title
                       </h3>
-                      <p className="text-neutral-400 p-2 rounded-lg border border-[#27272A] bg-[#202024]">
-                        {report.title}
-                      </p>
+                      <div className="flex flex-col gap-2 p-3 rounded-lg border border-[#27272A] bg-[#202024]">
+                         <p className="text-white font-medium">{report.title}</p>
+                         <span className="w-fit text-[10px] px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold uppercase tracking-wider">
+                           {getTypeDisplay(report.type)}
+                         </span>
+                      </div>
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-neutral-300 mb-1">
@@ -345,15 +455,14 @@ const ReportsList = () => {
                         {report.status}
                       </div>
                       <div className="flex items-center mt-4 gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                          {report.reporter?.image ? (
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 overflow-hidden shrink-0">
                             <img
-                              src={report.reporter.image}
+                              src={report.reporter?.image || "/images/userIcon.png"}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                              }}
                             />
-                          ) : (
-                            <User size={18} />
-                          )}
                         </div>
                         <span className="flex flex-col text-sm text-neutral-400">
                           <p className="text-white">
@@ -366,15 +475,32 @@ const ReportsList = () => {
                       </div>
                     </div>
                   </div>
+                   <div className="flex gap-3 mt-8">
+                     <button
+                       onClick={() => handleUpdateStatus(report.id, "resolved")}
+                       className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-colors font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+                     >
+                       <CheckCircle2 size={18} />
+                       Resolve Issue
+                     </button>
+                     <button
+                       onClick={() => handleUpdateStatus(report.id, "dismissed")}
+                       className="px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl transition-colors font-bold text-sm border border-white/5"
+                     >
+                       Dismiss
+                     </button>
+                  </div>
+
                   <button
                     onClick={() => setSelectedReportId(null)}
-                    className="mt-6 w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium text-sm"
+                    className="mt-4 w-full px-4 py-2 bg-white/5 hover:bg-white/10 text-white/40 rounded-lg transition-colors font-medium text-xs"
                   >
-                    Close
+                    Close Panel
                   </button>
-                </div>
-              );
-            })()
+                 </div>
+               );
+             })()
+
           ) : (
             <div className="flex items-center justify-center w-full h-64 border border-[#27272A] rounded-xl bg-[#1A1A1E] text-neutral-500">
               <p>เลือกรายการเพื่อดูรายละเอียด</p>

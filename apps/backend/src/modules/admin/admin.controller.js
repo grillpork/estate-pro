@@ -404,7 +404,4 @@ export const getLogs = async (req, res) => {
     }
 }
 
-// GET /admin/reports — stub (no reports table yet)
-export const getReports = async (req, res) => {
-    return res.status(200).json([])
-}
+

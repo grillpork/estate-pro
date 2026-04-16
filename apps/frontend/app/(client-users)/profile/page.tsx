@@ -133,48 +133,60 @@ export default function ProfilePage() {
 
       <div className="max-w-6xl mx-auto px-6 -mt-20 relative z-10">
         {/* Profile Identity */}
-        <div className="flex flex-col md:flex-row items-end gap-6 mb-12">
-          <div className="relative group">
-            <div className="w-40 h-40 rounded-full bg-[#111118] border-[6px] border-[#0a0a0f] overflow-hidden shadow-2xl relative">
-              <img 
-                src={user?.imagePath 
-                  ? `http://localhost:4000/${user.imagePath}` 
-                  : "/images/userIcon.png"} 
-                className="w-full h-full object-cover" 
-                alt="Avatar" 
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/images/userIcon.png";
-                }}
-              />
-              {/* Photo Upload Trigger */}
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm"
-              >
-                <Camera size={32} />
-              </button>
+        <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-6 mb-12">
+          <div className="flex flex-col md:flex-row items-center md:items-end gap-6 flex-1">
+            <div className="relative group shrink-0">
+              <div className="w-40 h-40 rounded-full bg-[#111118] border-[6px] border-[#0a0a0f] overflow-hidden shadow-2xl relative">
+                <img 
+                  src={user?.imagePath 
+                    ? `http://localhost:4000/${user.imagePath}` 
+                    : "/images/userIcon.png"} 
+                  className="w-full h-full object-cover" 
+                  alt="Avatar" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/images/userIcon.png";
+                  }}
+                />
+                {/* Photo Upload Trigger */}
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm"
+                >
+                  <Camera size={32} />
+                </button>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+              
+              {/* Status dot */}
+              <div className="absolute bottom-4 right-4 w-6 h-6 bg-green-500 border-4 border-[#0a0a0f] rounded-full shadow-lg" />
             </div>
-            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
-            
-            {/* Status dot */}
-            <div className="absolute bottom-4 right-4 w-6 h-6 bg-green-500 border-4 border-[#0a0a0f] rounded-full shadow-lg" />
+
+            <div className="pb-4 text-center md:text-left flex-1 min-w-0">
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-5xl font-black text-white tracking-tighter mb-2 truncate"
+              >
+                {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.username}
+              </motion.h1>
+              <div className="flex items-center justify-center md:justify-start gap-4 text-white/50">
+                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5 shrink-0">
+                  <ShieldCheck size={14} className="text-amber-500" />
+                  {user?.role || "Personal"}
+                </span>
+                <span className="text-xs uppercase tracking-tighter truncate">Joined {new Date(user?.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex-1 pb-4 text-center md:text-left">
-            <motion.h1 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-5xl font-black text-white tracking-tighter mb-2"
-            >
-              {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.username}
-            </motion.h1>
-            <div className="flex items-center justify-center md:justify-start gap-4 text-white/50">
-              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                <ShieldCheck size={14} className="text-amber-500" />
-                {user?.role || "Personal"}
-              </span>
-              <span className="text-xs uppercase tracking-tighter">Joined {new Date(user?.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-            </div>
+          <div className="pb-4 shrink-0 flex justify-center md:justify-end w-full md:w-auto">
+             <Link 
+               href={`/user/${user?.id}`} 
+               className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-black font-black transition-all shadow-lg hover:shadow-amber-500/20 text-sm group"
+             >
+                <User size={18} className="group-hover:scale-110 transition-transform" />
+                <span className="uppercase tracking-widest text-[10px] md:text-xs">Public Profile</span>
+             </Link>
           </div>
         </div>
 

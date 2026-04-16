@@ -40,4 +40,13 @@ export const userService = {
       throw error.response?.data || error.message;
     }
   },
+
+  getPublicProfile: async (id: number) => {
+    try {
+      const response = await api.get(`/api/users/${id}/public-profile`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
 };

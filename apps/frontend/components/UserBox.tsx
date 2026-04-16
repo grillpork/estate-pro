@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, Sparkles, ChevronsUpDown, Building2, Heart } from "lucide-react";
+import { LogOut, Settings, User, Sparkles, ChevronsUpDown, Building2, Heart, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authService } from "@/services/auth";
+import ReportModal from "./ReportModal";
 
 const UserBox = ({
   variant = "default",
@@ -14,6 +15,7 @@ const UserBox = ({
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -141,6 +143,17 @@ const UserBox = ({
               <Settings size={16} />
               Settings
             </button>
+            <button 
+                onClick={(e) => {
+                 e.stopPropagation();
+                 setIsOpen(false);
+                 setIsReportModalOpen(true);
+               }}
+               className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-[#1A1A1E] rounded-lg transition-colors border-t border-white/5 mt-1 pt-2"
+             >
+               <AlertTriangle size={16} className="text-red-500/50" />
+               Report an Issue
+             </button>
           </div>
 
           <div className="h-px bg-[#27272A] my-1" />
@@ -159,6 +172,13 @@ const UserBox = ({
           </div>
         </div>
       )}
+
+      <ReportModal 
+         isOpen={isReportModalOpen}
+         onClose={() => setIsReportModalOpen(false)}
+         initialType="website"
+         targetName="Website/General Issue"
+      />
     </div>
   );
 };

@@ -8,3 +8,4 @@ export * from './membershipPlans.js';
 export * from './messages.js';
 export * from './userSubscriptions.js';
 export * from './notifications.js';
+export * from './reports.js';

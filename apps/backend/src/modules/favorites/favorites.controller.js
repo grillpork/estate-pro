@@ -145,3 +145,57 @@ export const deleteFavorite = async (req, res) => {
     }
 }
 
+// POST /favorites/toggle
+export const toggleFavorite = async (req, res) => {
+    try {
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Unauthorized' })
+        }
+        
+        const userId = Number(req.user.id)
+        const propertyId = Number(req.body.propertyId)
+        
+        if (!propertyId) {
+             return res.status(400).json({ message: 'propertyId is required' })
+        }
+
+        // Check if already exists
+        const [existing] = await db
+            .select()
+            .from(favorites)
+            .where(and(eq(favorites.userId, userId), eq(favorites.propertyId, propertyId)))
+        
+        if (existing) {
+            // Delete it
+            await db.delete(favorites).where(eq(favorites.id, existing.id))
+            return res.status(200).json({ action: 'removed', propertyId })
+        } else {
+            // Insert it
+            const now = new Date()
+            let additionalData = {}
+            const [property] = await db.select().from(properties).where(eq(properties.id, propertyId))
+            if (property?.brandId) {
+                additionalData.brandId = property.brandId
+                const [brand] = await db.select().from(brands).where(eq(brands.id, property.brandId))
+                if (brand?.category) {
+                    additionalData.category = brand.category
+                }
+            }
+
+            const payload = {
+                userId,
+                propertyId,
+                ...additionalData,
+                createdAt: now,
+                updatedAt: now,
+            }
+
+            const [created] = await db.insert(favorites).values(payload).returning()
+            return res.status(201).json({ action: 'added', favorite: created, propertyId })
+        }
+    } catch (error) {
+        console.error('toggleFavorite error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+

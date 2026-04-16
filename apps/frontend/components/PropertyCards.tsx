@@ -87,25 +87,18 @@ const PropertyCards = ({
         e.preventDefault();
         e.stopPropagation();
 
-        const isFav = favoriteIds.has(propertyId);
-        
         try {
-            if (isFav) {
-                const favs = await favoritesService.getMyFavorites();
-                const favRecord = favs.find((f: any) => f.propertyId.toString() === propertyId);
-                if (favRecord) {
-                    await favoritesService.deleteFavorite(favRecord.id);
-                    setFavoriteIds(prev => {
-                        const next = new Set(prev);
-                        next.delete(propertyId);
-                        return next;
-                    });
-                }
-            } else {
-                await favoritesService.createFavorite(propertyId);
+            const res = await favoritesService.toggleFavorite(propertyId);
+            if (res.action === "added") {
                 setFavoriteIds(prev => {
                     const next = new Set(prev);
                     next.add(propertyId);
+                    return next;
+                });
+            } else if (res.action === "removed") {
+                setFavoriteIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(propertyId);
                     return next;
                 });
             }
