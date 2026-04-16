@@ -4,12 +4,14 @@ import StartChatEmptyState from "@/components/StartChatEmptyState";
 import CarouselEmbla from "@/components/CarouselEmbla";
 import PromotionBento from "@/components/PromotionBento";
 import PropertyCards from "@/components/PropertyCards";
+import NearbyStations from "@/components/NearbyStations";
+import PopularLocations from "@/components/PopularLocations";
+import RecentlyListed from "@/components/RecentlyListed";
 
 export default async function HomePage() {
   return (
     <div className="bg-[#0a0a0f] min-h-screen overflow-x-hidden pb-10">
       {/* Hero Section */}
-      
       <section className="relative overflow-hidden mb-20">        
         <CarouselEmbla />
       </section>
@@ -20,10 +22,15 @@ export default async function HomePage() {
       {/* Featured Grid */}
       <PropertyCards />
 
+      {/* Interactive Discover Sections */}
+      <NearbyStations />
+      <PopularLocations />
+      <RecentlyListed />
+
       
 
       {/* Services Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">
+      <section className="w-full px-6 md:px-12 lg:px-16 py-20 relative">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="flex flex-col items-center text-center ">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 mb-6">

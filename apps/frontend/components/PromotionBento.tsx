@@ -63,7 +63,7 @@ const itemVariants = {
 
 export default function PromotionBento() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <section className="w-full px-6 md:px-12 lg:px-16 py-12">
       <div className="flex items-center gap-3 mb-8">
         <div className="h-8 w-1 bg-amber-500 rounded-full" />
         <h2 className="text-2xl font-bold text-white tracking-tight">แคมเปญพิเศษประจำเดือน</h2>
