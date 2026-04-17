@@ -19,9 +19,24 @@ export type SubscribePayload = {
   autoRenew?: boolean;
 };
 
+export type QuotaCheck = {
+  hasSubscription: boolean;
+  canCreateListing: boolean;
+  code: "OK" | "NO_SUBSCRIPTION" | "SUBSCRIPTION_EXPIRED" | "MAX_LISTINGS_REACHED";
+  message: string | null;
+  planName?: string;
+  currentListings?: number;
+  maxListings?: number;
+};
+
 export const clientUserSubscriptionsService = {
   getMySubscription: async (): Promise<ClientUserSubscription[]> => {
     const response = await api.get("/user-subscriptions/me");
+    return response.data;
+  },
+
+  checkQuota: async (): Promise<QuotaCheck> => {
+    const response = await api.get("/user-subscriptions/check-quota");
     return response.data;
   },
 

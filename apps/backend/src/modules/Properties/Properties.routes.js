@@ -14,13 +14,14 @@ import {
     loadPropertyNameByImageId,
 } from './Properties.controller.js'
 import { verifyToken } from '../../middleware/auth.middleware.js'
+import { requireSubscription } from '../../middleware/requireSubscription.middleware.js'
 import { upload, optimizeImage, optimizeImages, setUploadFolder } from '../../middleware/upload.js'
 
 export const propertiesRouter = express.Router()
     .get('/properties', getAllProperties)
     .get('/properties/my', verifyToken, getMyProperties)
     .get('/properties/:id', getPropertyById)
-    .post('/properties', verifyToken, setUploadFolder('property'), upload.any(), optimizeImages, createProperty)
+    .post('/properties', verifyToken, requireSubscription, setUploadFolder('property'), upload.any(), optimizeImages, createProperty)
     .put('/properties/:id', verifyToken, updateProperty)
     // สำหรับอัปโหลดรูปภาพ (รองรับทั้งเดียวและหลายรูป)
     .put('/properties/:id/image', verifyToken, setUploadFolder('property'), upload.any(), loadPropertyName, optimizeImages, updatePropertyImage)

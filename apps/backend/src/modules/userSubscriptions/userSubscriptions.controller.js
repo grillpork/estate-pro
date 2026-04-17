@@ -1,6 +1,6 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, count } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
-import { userSubscriptions, membershipPlans } from '../../database/schema/index.js'
+import { userSubscriptions, membershipPlans, properties } from '../../database/schema/index.js'
 
 /** GET /user-subscriptions — Admin only */
 export const getAllUserSubscriptions = async (req, res) => {
@@ -159,6 +159,76 @@ export const updateUserSubscription = async (req, res) => {
     return res.json(updated)
   } catch (error) {
     console.error('updateUserSubscription error:', error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+/** GET /user-subscriptions/check-quota — เช็คโควต้าลงประกาศของ user */
+export const checkQuota = async (req, res) => {
+  try {
+    const userId = Number(req.user?.id)
+
+    // 1. หา active subscription
+    const activeSubs = await db
+      .select({
+        subscription: userSubscriptions,
+        plan: membershipPlans,
+      })
+      .from(userSubscriptions)
+      .innerJoin(membershipPlans, eq(userSubscriptions.planId, membershipPlans.id))
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, 'active')
+        )
+      )
+      .limit(1)
+
+    if (activeSubs.length === 0) {
+      return res.json({
+        hasSubscription: false,
+        canCreateListing: false,
+        code: 'NO_SUBSCRIPTION',
+        message: 'คุณยังไม่ได้สมัครแพลน กรุณาสมัครแพลนก่อนลงประกาศ',
+      })
+    }
+
+    const { subscription, plan } = activeSubs[0]
+
+    // 2. เช็คหมดอายุ
+    if (subscription.endDate && new Date(subscription.endDate) < new Date()) {
+      return res.json({
+        hasSubscription: true,
+        canCreateListing: false,
+        code: 'SUBSCRIPTION_EXPIRED',
+        message: 'แพลนของคุณหมดอายุแล้ว กรุณาต่ออายุหรือสมัครแพลนใหม่',
+        planName: plan.name,
+      })
+    }
+
+    // 3. นับจำนวน property
+    const [propertyCount] = await db
+      .select({ count: count() })
+      .from(properties)
+      .where(eq(properties.userId, userId))
+
+    const currentListings = propertyCount.count
+    const maxListings = plan.maxListings
+    const canCreate = maxListings === null || currentListings < maxListings
+
+    return res.json({
+      hasSubscription: true,
+      canCreateListing: canCreate,
+      code: canCreate ? 'OK' : 'MAX_LISTINGS_REACHED',
+      message: canCreate
+        ? null
+        : `คุณลงประกาศครบจำนวนสูงสุดของแพลน ${plan.name} แล้ว (${maxListings} รายการ)`,
+      planName: plan.name,
+      currentListings,
+      maxListings,
+    })
+  } catch (error) {
+    console.error('checkQuota error:', error)
     return res.status(500).json({ message: 'Internal server error' })
   }
 }
