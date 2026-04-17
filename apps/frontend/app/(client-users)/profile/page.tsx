@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { 
-  User, Mail, Phone, Camera, ShieldCheck, 
+import {
+  User, Mail, Phone, Camera, ShieldCheck,
   Calendar, Loader2, Save, ArrowLeft,
-  Settings, Key, Bell, CreditCard, LogOut
+  Settings, Key, Bell, CreditCard, Crown, LogOut
 } from "lucide-react";
 import { userService, UpdateUserDto } from "@/services/client/users";
 import { useRouter } from "next/navigation";
@@ -118,13 +118,13 @@ export default function ProfilePage() {
   return (
     <div className="bg-[#0a0a0f] min-h-screen text-white/90 selection:bg-amber-500/30">
       <Navbar />
-      
+
       {/* Cover Section */}
       <div className="h-[28vh] relative overflow-hidden group">
         <div className="absolute inset-0 bg-linear-to-b from-amber-950/20 via-amber-900/5 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-[#0a0a0f] to-transparent" />
         <div className="h-full w-full bg-[radial-gradient(circle_at_50%_50%,rgba(245,158,11,0.1),transparent)]" />
-        
+
         {/* Change Cover Button (Mock) */}
         <button className="absolute bottom-10 right-10 px-4 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-lg text-xs font-bold transition-all border border-white/5 opacity-0 group-hover:opacity-100">
           เปลี่ยนหน้าปก
@@ -137,18 +137,18 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row items-center md:items-end gap-6 flex-1">
             <div className="relative group shrink-0">
               <div className="w-40 h-40 rounded-full bg-[#111118] border-[6px] border-[#0a0a0f] overflow-hidden shadow-2xl relative">
-                <img 
-                  src={user?.imagePath 
-                    ? `http://localhost:4000/${user.imagePath}` 
-                    : "/images/userIcon.png"} 
-                  className="w-full h-full object-cover" 
-                  alt="Avatar" 
+                <img
+                  src={user?.imagePath
+                    ? `http://localhost:4000/${user.imagePath}`
+                    : "/images/userIcon.png"}
+                  className="w-full h-full object-cover"
+                  alt="Avatar"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/images/userIcon.png";
                   }}
                 />
                 {/* Photo Upload Trigger */}
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm"
                 >
@@ -156,13 +156,13 @@ export default function ProfilePage() {
                 </button>
               </div>
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
-              
+
               {/* Status dot */}
               <div className="absolute bottom-4 right-4 w-6 h-6 bg-green-500 border-4 border-[#0a0a0f] rounded-full shadow-lg" />
             </div>
 
             <div className="pb-4 text-center md:text-left flex-1 min-w-0">
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-5xl font-black text-white tracking-tighter mb-2 truncate"
@@ -180,13 +180,13 @@ export default function ProfilePage() {
           </div>
 
           <div className="pb-4 shrink-0 flex justify-center md:justify-end w-full md:w-auto">
-             <Link 
-               href={`/user/${user?.id}`} 
-               className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-black font-black transition-all shadow-lg hover:shadow-amber-500/20 text-sm group"
-             >
-                <User size={18} className="group-hover:scale-110 transition-transform" />
-                <span className="uppercase tracking-widest text-[10px] md:text-xs">Public Profile</span>
-             </Link>
+            <Link
+              href={`/user/${user?.id}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-black font-black transition-all shadow-lg hover:shadow-amber-500/20 text-sm group"
+            >
+              <User size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="uppercase tracking-widest text-[10px] md:text-xs">Public Profile</span>
+            </Link>
           </div>
         </div>
 
@@ -209,6 +209,9 @@ export default function ProfilePage() {
             <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
               <CreditCard size={18} /> การชำระเงิน
             </button>
+            <Link href="/my-subscription" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
+              <Crown size={18} /> แพ็กเกจของฉัน
+            </Link>
             <div className="pt-8 opacity-20"><hr className="border-white/10" /></div>
             <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition-all text-sm font-bold mt-4">
               <LogOut size={18} /> ออกจากระบบ
@@ -228,8 +231,8 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-white/20 uppercase tracking-widest">Username</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="username"
                       value={formData.username}
                       onChange={handleChange}
@@ -239,17 +242,17 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-white/20 uppercase tracking-widest">Email Address</label>
-                    <input 
-                      type="email" 
-                      value={user?.email || ""} 
+                    <input
+                      type="email"
+                      value={user?.email || ""}
                       disabled
                       className="w-full bg-transparent border-b-2 border-white/5 py-3 text-lg font-medium text-white/40 cursor-not-allowed outline-none"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-white/20 uppercase tracking-widest">First Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
@@ -259,8 +262,8 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-white/20 uppercase tracking-widest">Last Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
@@ -271,8 +274,8 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-white/20 uppercase tracking-widest">Phone Number</label>
                     <div className="relative">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         name="phoneNumber"
                         value={formData.phoneNumber}
                         onChange={handleChange}
@@ -296,10 +299,10 @@ export default function ProfilePage() {
                   {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} className="group-hover:scale-125 transition-transform" />}
                   {saving ? "SAVING..." : "COMMIT CHANGES"}
                 </button>
-                
+
                 <AnimatePresence>
                   {(success || error) && (
-                    <motion.p 
+                    <motion.p
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0 }}
@@ -314,7 +317,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-      
+
       {/* Footer spacer */}
       <div className="h-40" />
     </div>

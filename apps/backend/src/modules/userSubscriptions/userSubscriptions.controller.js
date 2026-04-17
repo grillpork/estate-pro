@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
 import { userSubscriptions, membershipPlans } from '../../database/schema/index.js'
 
@@ -71,12 +71,38 @@ export const createUserSubscription = async (req, res) => {
     }
 
     const now = new Date()
+    const start = startDate ? new Date(startDate) : now
+
+    // Deactivate any existing active subscriptions for this user
+    await db
+      .update(userSubscriptions)
+      .set({ status: 'cancelled', updatedAt: now })
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, 'active')
+        )
+      )
+
+    // Auto-calculate endDate based on billingCycle
+    let calculatedEndDate = null
+    if (endDate) {
+      calculatedEndDate = new Date(endDate)
+    } else {
+      calculatedEndDate = new Date(start)
+      if (billingCycle === 'monthly') {
+        calculatedEndDate.setMonth(calculatedEndDate.getMonth() + 1)
+      } else if (billingCycle === 'yearly') {
+        calculatedEndDate.setFullYear(calculatedEndDate.getFullYear() + 1)
+      }
+    }
+
     const payload = {
       userId,
       planId: Number(planId),
       billingCycle,
-      startDate: startDate ? new Date(startDate) : now,
-      endDate: endDate ? new Date(endDate) : null,
+      startDate: start,
+      endDate: calculatedEndDate,
       status: 'active',
       autoRenew: autoRenew ?? false,
       createdAt: now,

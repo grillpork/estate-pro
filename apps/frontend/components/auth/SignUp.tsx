@@ -4,7 +4,7 @@ import { authService, RegisterCredentails } from "@/services/auth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +18,8 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 const SignUp = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -55,7 +57,34 @@ const SignUp = () => {
     };
     const result = await authService.register(credentials);
     if (result.success) {
-      router.push("/auth/sign-in?registered=true");
+      // Try to auto-login after successful registration
+      try {
+        const loginRes = await authService.login({ email: data.email, password: data.password });
+        if (loginRes.success) {
+          // Safe redirect: only allow internal paths
+          const safeRedirect = (raw?: string | null) => {
+            if (!raw) return "/";
+            try {
+              const decoded = decodeURIComponent(raw);
+              if (decoded.startsWith("/") && !decoded.startsWith("//")) return decoded;
+            } catch (e) {
+              // ignore
+            }
+            return "/";
+          };
+
+          const destination = safeRedirect(from);
+          router.push(destination);
+          router.refresh();
+          return;
+        }
+      } catch (e) {
+        // ignore login error and fallback to sign-in page
+      }
+
+      // Fallback: redirect to sign-in preserving `from` and registered flag
+      const target = `/auth/sign-in?registered=true${from ? `&from=${encodeURIComponent(from)}` : ""}`;
+      router.push(target);
       router.refresh();
     } else {
       setError(result.error || "เกิดข้อผิดพลาดในการสมัครสมาชิก");
@@ -109,11 +138,9 @@ const SignUp = () => {
                   type="email"
                   autoComplete="email"
                   placeholder="example@email.com"
-                  className={`w-full bg-white/5 border ${
-                    errors.email ? "border-red-500/50" : "border-white/10 focus:border-amber-500/60"
-                  } text-white placeholder-white/20 rounded-xl pl-10 pr-4 py-3 text-sm outline-none transition-all duration-200 focus:bg-white/8 focus:ring-2 ${
-                    errors.email ? "focus:ring-red-500/20" : "focus:ring-amber-500/15"
-                  }`}
+                  className={`w-full bg-white/5 border ${errors.email ? "border-red-500/50" : "border-white/10 focus:border-amber-500/60"
+                    } text-white placeholder-white/20 rounded-xl pl-10 pr-4 py-3 text-sm outline-none transition-all duration-200 focus:bg-white/8 focus:ring-2 ${errors.email ? "focus:ring-red-500/20" : "focus:ring-amber-500/15"
+                    }`}
                 />
               </div>
               {errors.email && (
@@ -134,11 +161,9 @@ const SignUp = () => {
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="อย่างน้อย 6 ตัวอักษร"
-                  className={`w-full bg-white/5 border ${
-                    errors.password ? "border-red-500/50" : "border-white/10 focus:border-amber-500/60"
-                  } text-white placeholder-white/20 rounded-xl pl-10 pr-12 py-3 text-sm outline-none transition-all duration-200 focus:bg-white/8 focus:ring-2 ${
-                    errors.password ? "focus:ring-red-500/20" : "focus:ring-amber-500/15"
-                  }`}
+                  className={`w-full bg-white/5 border ${errors.password ? "border-red-500/50" : "border-white/10 focus:border-amber-500/60"
+                    } text-white placeholder-white/20 rounded-xl pl-10 pr-12 py-3 text-sm outline-none transition-all duration-200 focus:bg-white/8 focus:ring-2 ${errors.password ? "focus:ring-red-500/20" : "focus:ring-amber-500/15"
+                    }`}
                 />
                 <button
                   type="button"
@@ -155,9 +180,8 @@ const SignUp = () => {
                     {[1, 2, 3, 4].map((i) => (
                       <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                          i <= strength ? strengthColor : "bg-white/10"
-                        }`}
+                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength ? strengthColor : "bg-white/10"
+                          }`}
                       />
                     ))}
                   </div>
@@ -212,7 +236,7 @@ const SignUp = () => {
           <p className="mt-6 text-center text-sm text-white/35">
             มีบัญชีแล้ว?{" "}
             <Link
-              href="/auth/sign-in"
+              href={from ? `/auth/sign-in?from=${encodeURIComponent(from)}` : "/auth/sign-in"}
               className="text-amber-400 hover:text-amber-300 font-medium transition-colors"
             >
               เข้าสู่ระบบ

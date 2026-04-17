@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import { eq } from 'drizzle-orm'
 import { db } from '../../database/db.js'
 import { users, roles } from '../../database/schema/index.js'
@@ -169,6 +170,102 @@ export const heartbeat = async (req, res) => {
         return res.status(200).json({ success: true })
     } catch (error) {
         console.error('Heartbeat error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+
+// POST /auth/forgot-password
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body
+
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required' })
+        }
+
+        // Always return success to prevent email enumeration
+        const [user] = await db.select().from(users).where(eq(users.email, email))
+
+        if (!user) {
+            return res.status(200).json({ message: 'If an account with that email exists, a reset link has been sent.' })
+        }
+
+        // Generate a secure random token
+        const resetToken = crypto.randomBytes(32).toString('hex')
+        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+
+        // Store hashed token in DB
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+        await db.update(users).set({
+            resetToken: hashedToken,
+            resetTokenExpiry,
+            updatedAt: new Date(),
+        }).where(eq(users.id, user.id))
+
+        // Build reset URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+        const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+
+        // TODO: Replace with real email service (nodemailer) in production
+        console.log('═══════════════════════════════════════════')
+        console.log('📧 PASSWORD RESET LINK (dev mode)')
+        console.log(`   Email: ${email}`)
+        console.log(`   Link:  ${resetUrl}`)
+        console.log(`   Expires: ${resetTokenExpiry.toLocaleString()}`)
+        console.log('═══════════════════════════════════════════')
+
+        return res.status(200).json({ message: 'If an account with that email exists, a reset link has been sent.' })
+    } catch (error) {
+        console.error('Forgot password error:', error)
+        return res.status(500).json({ message: 'Internal server error' })
+    }
+}
+
+// POST /auth/reset-password
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, email, newPassword } = req.body
+
+        if (!token || !email || !newPassword) {
+            return res.status(400).json({ message: 'Token, email, and new password are required' })
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' })
+        }
+
+        // Find user by email
+        const [user] = await db.select().from(users).where(eq(users.email, email))
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired reset token' })
+        }
+
+        // Verify token
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+        if (!user.resetToken || user.resetToken !== hashedToken) {
+            return res.status(400).json({ message: 'Invalid or expired reset token' })
+        }
+
+        // Check expiry
+        if (!user.resetTokenExpiry || new Date(user.resetTokenExpiry) < new Date()) {
+            return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' })
+        }
+
+        // Hash new password and update
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        await db.update(users).set({
+            password: hashedPassword,
+            resetToken: null,
+            resetTokenExpiry: null,
+            updatedAt: new Date(),
+        }).where(eq(users.id, user.id))
+
+        return res.status(200).json({ message: 'Password has been reset successfully' })
+    } catch (error) {
+        console.error('Reset password error:', error)
         return res.status(500).json({ message: 'Internal server error' })
     }
 }

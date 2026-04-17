@@ -22,8 +22,9 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. If trying to access auth pages and already logged in
-  if (pathname.startsWith("/auth") && token) {
+  // 1. If trying to access auth pages and already logged in (except forgot/reset password)
+  const isForgotOrReset = pathname.startsWith("/auth/forgot-password") || pathname.startsWith("/auth/reset-password");
+  if (pathname.startsWith("/auth") && token && !isForgotOrReset) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

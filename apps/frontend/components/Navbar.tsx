@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building2, PlusCircle, Menu, X, MessageSquare } from "lucide-react";
+import { Home, Building2, PlusCircle, Menu, X, MessageSquare, Crown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import UserBox from "./UserBox";
 import { api } from "@/lib/api";
@@ -40,6 +40,7 @@ const Navbar = () => {
     { name: "HOME", href: "/", icon: Home },
     { name: "PROPERTIES", href: "/properties", icon: Building2 },
     { name: "LIST PROPERTY", href: "/properties/create", icon: PlusCircle },
+    { name: "PRICING", href: "/pricing", icon: Crown },
     { name: "MESSAGES", href: "/conversations", icon: MessageSquare },
   ];
 
@@ -57,7 +58,7 @@ const Navbar = () => {
           localStorage.setItem("user", JSON.stringify(res.data));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [currentUserId]);
 
   useEffect(() => {
@@ -151,15 +152,15 @@ const Navbar = () => {
         <div ref={linksContainerRef} className="relative flex items-center justify-center h-full">
           {/* 👇 ขีดข้างล่าง (Underline Indicator) */}
           <div
-            className="absolute bottom-0 left-0 h-0.5 bg-amber-500 transition-all duration-300 ease-out pointer-events-none" 
+            className="absolute bottom-0 left-0 h-0.5 bg-amber-500 transition-all duration-300 ease-out pointer-events-none"
             style={indicatorStyle}
           />
-  
+
           {navLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(link.href);
             const isMessagesLink = link.href === "/conversations";
-  
+
             return (
               <Link
                 key={link.href}

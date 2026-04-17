@@ -14,6 +14,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastSeen: timestamp("last_seen"),
   verification: varchar("verification", { length: 20 }).default("unverified"),
+  resetToken: varchar("reset_token", { length: 255 }),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
 });
 
 export const roles = pgTable("roles", {

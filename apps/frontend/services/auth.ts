@@ -64,4 +64,28 @@ export const authService = {
       return null;
     }
   },
+
+  forgotPassword: async (email: string) => {
+    try {
+      const response = await api.post("/auth/forgot-password", { email });
+      return { success: true, message: response.data.message };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "เกิดข้อผิดพลาด กรุณาลองใหม่",
+      };
+    }
+  },
+
+  resetPassword: async (token: string, email: string, newPassword: string) => {
+    try {
+      const response = await api.post("/auth/reset-password", { token, email, newPassword });
+      return { success: true, message: response.data.message };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "เกิดข้อผิดพลาด กรุณาลองใหม่",
+      };
+    }
+  },
 };
