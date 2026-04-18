@@ -12,10 +12,6 @@ import {
 import { brands } from "./brands.js";
 import { users } from "./user.js";
 
-export const occupancyEnum = pgEnum("occupancy", [
-  "VACANT",
-  "OCCUPIED",
-]);
 export const listingTypeEnum = pgEnum("listing_type", [
   "SALES",
   "RENT",
@@ -57,7 +53,6 @@ export const properties = pgTable("properties", {
   facing: varchar("facing", { length: 100 }),
   latitude: numeric("latitude", { precision: 18, scale: 10 }),
   longitude: numeric("longitude", { precision: 18, scale: 10 }),
-  occupancy: occupancyEnum("occupancy"),
   ownerName: varchar("owner_name", { length: 255 }),
   ownerPhone: varchar("owner_phone", { length: 20 }),
   availableDate: timestamp("available_date", { withTimezone: false }),
@@ -68,6 +63,7 @@ export const properties = pgTable("properties", {
   discount: numeric("discount", { precision: 15, scale: 2 }),
   discountActive: boolean("discount_active").notNull().default(true),
   discountType: varchar("discount_type", { length: 10 }).notNull().default("BAHT"),
+  saleNetTotal: numeric("sale_net_total", { precision: 15, scale: 2 }),
   rentDiscount: numeric("rent_discount", { precision: 15, scale: 2 }),
   rentDiscountActive: boolean("rent_discount_active").notNull().default(false),
   rentDiscountType: varchar("rent_discount_type", { length: 10 })
@@ -76,7 +72,6 @@ export const properties = pgTable("properties", {
   rentNetTotal: numeric("rent_net_total", { precision: 15, scale: 2 }),
   status: propertyStatusEnum("status").notNull().default("pending"),
   rejectionReason: text("rejection_reason"),
-  condition: integer("condition").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: false }),
 });

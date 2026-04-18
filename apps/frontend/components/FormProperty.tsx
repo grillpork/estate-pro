@@ -20,7 +20,6 @@ import {
   User,
   Phone,
   Calendar,
-  Percent,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import MapPicker from "./MapPicker";
@@ -62,11 +61,10 @@ interface PropertyFormData {
   rentDiscount?: string;
   rentDiscountActive?: boolean;
   rentDiscountType?: "BAHT" | "PERCENT";
+  saleNetTotal?: string;
   rentNetTotal?: string;
   ownerName?: string;
   ownerPhone?: string;
-  occupancy?: "VACANT" | "OCCUPIED";
-  condition?: number;
   availableDate?: string;
 }
 
@@ -215,11 +213,12 @@ function DarkSelect({
 
 export default function ListingProperty({ initialData, onSubmit, onCancel }: ListingPropertyProps) {
   const router = useRouter();
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [existingImages, setExistingImages] = useState<any[]>([]);
+  type ImageItem = { id: string; type: 'existing' | 'new'; url: string; file?: File; dbId?: number };
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [language, setLanguage] = useState<"TH" | "EN">("TH");
+  const [formMode, setFormMode] = useState<"PROPERTY" | "BRAND">("PROPERTY");
 
   // Brands state
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -255,14 +254,48 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
   const watchLat = watch("latitude");
   const watchLng = watch("longitude");
 
+  // Watch fields for real-time discount calculation
+  const watchStartingPrice = watch("startingPrice");
+  const watchDiscount = watch("discount");
+  const watchDiscountType = watch("discountType");
+  const watchRentPrice = watch("rentPrice");
+  const watchRentDiscount = watch("rentDiscount");
+  const watchRentDiscountType = watch("rentDiscountType");
+
+  // Helper: calculate net price after discount
+  const calcNetPrice = (price: string | undefined, discountActive: boolean | undefined, discount: string | undefined, discountType: string | undefined): number | null => {
+    const p = parseFloat(price || "0");
+    if (!p || p <= 0) return null;
+    if (!discountActive || !discount) return p;
+    const d = parseFloat(discount);
+    if (!d || d <= 0) return p;
+    if (discountType === "PERCENT") {
+      const result = p - (p * d / 100);
+      return result > 0 ? result : 0;
+    }
+    const result = p - d;
+    return result > 0 ? result : 0;
+  };
+
+  const saleNetPrice = calcNetPrice(watchStartingPrice, watchDiscountActive, watchDiscount, watchDiscountType);
+  const rentNetPrice = calcNetPrice(watchRentPrice, watchRentDiscountActive, watchRentDiscount, watchRentDiscountType);
+
+  // Format number with commas
+  const formatNumber = (num: number | null) => {
+    if (num === null || isNaN(num)) return "-";
+    return num.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   // Load existing images on edit
   useEffect(() => {
-    if (initialData?.images && initialData.images.length > 0 && previewUrls.length === 0) {
-      setExistingImages(initialData.images);
-      const existingUrls = initialData.images.map((img: any) => 
-        `http://localhost:4000/${img.imagePath.replace(/\\/g, '/')}`
-      );
-      setPreviewUrls(existingUrls);
+    if (initialData?.images && initialData.images.length > 0 && images.length === 0) {
+      const existingItems: ImageItem[] = initialData.images.map((img: any) => ({
+        id: `existing-${img.id}`,
+        type: 'existing',
+        url: `http://localhost:4000/${img.imagePath.replace(/\\/g, '/')}`,
+        dbId: img.id
+      }));
+      setImages(existingItems);
     }
   }, [initialData]);
 
@@ -313,50 +346,85 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
   const handleFiles = (newFiles: File[]) => {
     const validImageFiles = newFiles.filter(f => f.type.startsWith("image/"));
     
-    // Create blob URLs for the new files
-    const newUrls = validImageFiles.map(file => URL.createObjectURL(file));
+    const newItems: ImageItem[] = validImageFiles.map(file => ({
+      id: `new-${Math.random().toString(36).substring(2, 9)}`,
+      type: 'new',
+      url: URL.createObjectURL(file),
+      file
+    }));
 
-    setSelectedFiles(prev => {
-      const combined = [...prev, ...validImageFiles];
-      return combined.slice(0, 10);
-    });
-
-    setPreviewUrls(prev => {
-      const combined = [...prev, ...newUrls];
+    setImages(prev => {
+      const combined = [...prev, ...newItems];
       return combined.slice(0, 10);
     });
   };
 
   const removeImage = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    const urlToRemove = previewUrls[index];
+    const itemToRemove = images[index];
     
-    // If it's a local blob URL, revoke it
-    if (urlToRemove.startsWith("blob:")) {
-      URL.revokeObjectURL(urlToRemove);
-      
-      // Sync selectedFiles: find which file in selectedFiles matches this index
-      const blobIndex = previewUrls.slice(0, index).filter(url => url.startsWith("blob:")).length;
-      setSelectedFiles(prev => prev.filter((_, i) => i !== blobIndex));
-    } else {
-      // It's an existing image, find its ID and remove from existingImages
-      // The logic is: previewUrls[0...n-1] contains [existing[0...m-1], local[0...k-1]]
-      // So if it's not a blob, it matches existingImages[index]
-      setExistingImages(prev => prev.filter((_, i) => i !== index));
+    if (itemToRemove.type === 'new') {
+      URL.revokeObjectURL(itemToRemove.url);
     }
 
-    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOverImg = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    setImages(prev => {
+      const updated = [...prev];
+      const draggedItem = updated[draggedIndex];
+      // remove dragged item
+      updated.splice(draggedIndex, 1);
+      // insert at new index
+      updated.splice(index, 0, draggedItem);
+      return updated;
+    });
+    setDraggedIndex(index);
+  };
+
+  const handleDropImg = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDraggedIndex(null);
   };
 
   useEffect(() => {
     return () => {
-      previewUrls.forEach(url => URL.revokeObjectURL(url));
+       // Cleanup blob URLs on unmount to prevent memory leaks (using functional update to access latest state securely)
+       setImages(currentImages => {
+         currentImages.forEach(img => {
+           if (img.type === 'new') URL.revokeObjectURL(img.url);
+         });
+         return currentImages;
+       });
     };
   }, []);
 
   const handleFormSubmit = async (data: PropertyFormData) => {
     setIsConfirming(true);
     try {
+      if (formMode === "BRAND") {
+        const payload = {
+          name: data.name,
+          category: data.category,
+          isActive: true,
+        };
+        const result = await brandsService.createBrand(payload);
+        if (onSubmit) await onSubmit(result);
+        alert("สร้างแบรนด์สำเร็จ!");
+        router.refresh();
+        setFormMode("PROPERTY");
+        return;
+      }
+
       const payload = {
         name: data.name,
         description: data.description,
@@ -382,18 +450,17 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
         discount: data.discountActive ? data.discount : undefined,
         discountActive: data.discountActive || false,
         discountType: data.discountActive ? data.discountType : undefined,
+        saleNetTotal: saleNetPrice !== null ? String(saleNetPrice) : undefined,
         rentDiscount: data.rentDiscountActive ? data.rentDiscount : undefined,
         rentDiscountActive: data.rentDiscountActive || false,
         rentDiscountType: data.rentDiscountActive ? data.rentDiscountType : undefined,
-        rentNetTotal: data.rentNetTotal || undefined,
+        rentNetTotal: rentNetPrice !== null ? String(rentNetPrice) : undefined,
         province: data.province || undefined,
         district: data.district || undefined,
         subDistrict: data.subDistrict || undefined,
         zipCode: data.zipCode || undefined,
         latitude: data.latitude || undefined,
         longitude: data.longitude || undefined,
-        occupancy: data.occupancy || undefined,
-        condition: data.condition ? Number(data.condition) : undefined,
         availableDate: data.availableDate ? new Date(data.availableDate).toISOString() : undefined,
         ownerName: data.ownerName || undefined,
         ownerPhone: data.ownerPhone || undefined,
@@ -406,19 +473,27 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
         
         // Image Sync for Update
         const formData = new FormData();
-        const keepIds = existingImages.map(img => img.id);
+        const keepIds = images.filter(img => img.type === 'existing').map(img => img.dbId);
         formData.append("keepImageIds", keepIds.join(","));
-        
-        selectedFiles.forEach(file => {
-          formData.append("images", file);
+
+        let newCount = 0;
+        const orderPayload = images.map((img) => {
+           if (img.type === 'existing') return { type: 'existing', id: img.dbId };
+           return { type: 'new', index: newCount++ };
+        });
+        formData.append("orderPayload", JSON.stringify(orderPayload));
+
+        images.filter(img => img.type === 'new').forEach(img => {
+          formData.append("images", img.file!);
         });
 
         // Use the image sync route (PUT)
         await propertyService.updatePropertyImage(initialData.id, formData);
       } else {
         result = await propertyService.createProperty(payload);
-        if (selectedFiles.length > 0 && result.id) {
-          await propertyService.uploadPropertyImages(result.id, selectedFiles);
+        const newFiles = images.filter(img => img.type === 'new').map(img => img.file!);
+        if (newFiles.length > 0 && result.id) {
+          await propertyService.uploadPropertyImages(result.id, newFiles);
         }
       }
 
@@ -512,35 +587,112 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6" id="property-form">
 
-          {/* ประเภทการประกาศ */}
-          <section className="bg-[#111118] p-6 rounded-2xl border border-white/5">
-            <label className="flex items-center gap-2 text-[15px] font-bold mb-4 text-white/80">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block" />
-              ประเภทการประกาศ <span className="text-amber-500 ml-1">*</span>
-            </label>
-            <div className="bg-white/5 p-1.5 rounded-full flex relative mx-auto w-full">
-              {LISTING_TYPES.map(type => {
-                const isActive = watchListingType === type.value;
-                return (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => setValue("listingType", type.value as any)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-full text-sm font-semibold transition-all duration-300 ${
-                      isActive
-                        ? "bg-amber-500/10 text-amber-400 shadow-sm ring-1 ring-amber-500/20"
-                        : "text-white/50 hover:text-white/70 hover:bg-white/5"
-                    }`}
-                  >
-                    <span className={isActive ? "opacity-100" : "opacity-60"}>{type.icon}</span>
-                    {type.label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          {/* การเลือกประเภทหลัก (Property vs Brand) และ ประเภทการประกาศ */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            {/* เลือกแบบแบรนด์ หรือ อสังหาฯ */}
+            <section className="bg-[#111118] p-6 rounded-2xl border border-white/5 flex flex-col">
+              <label className="flex items-center gap-2 text-[15px] font-bold mb-4 text-white/80">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block" />
+                คุณต้องการสร้างอะไร? <span className="text-amber-500 ml-1">*</span>
+              </label>
+              <div className="bg-white/5 p-1.5 rounded-full flex gap-1 h-full items-center">
+                <button
+                  type="button"
+                  onClick={() => setFormMode("PROPERTY")}
+                  className={`flex-1 py-3 px-6 rounded-full text-sm font-semibold transition-all duration-300 ${
+                    formMode === "PROPERTY"
+                      ? "bg-amber-500/10 text-amber-400 shadow-sm ring-1 ring-amber-500/20"
+                      : "text-white/50 hover:text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  อสังหาริมทรัพย์
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormMode("BRAND")}
+                  className={`flex-1 py-3 px-6 rounded-full text-sm font-semibold transition-all duration-300 ${
+                    formMode === "BRAND"
+                      ? "bg-amber-500/10 text-amber-400 shadow-sm ring-1 ring-amber-500/20"
+                      : "text-white/50 hover:text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  แบรนด์
+                </button>
+              </div>
+            </section>
 
-          {/* ข้อมูลทั่วไปโครงการ */}
+            {/* ประเภทการประกาศ */}
+            <section className={`bg-[#111118] p-6 rounded-2xl border border-white/5 transition-opacity ${formMode === "BRAND" ? "opacity-50 pointer-events-none" : ""}`}>
+              <label className="flex items-center gap-2 text-[15px] font-bold mb-4 text-white/80">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block" />
+                ประเภทการประกาศ <span className="text-amber-500 ml-1">*</span>
+                {formMode === "BRAND" && <span className="text-[10px] text-white/30 ml-2 font-normal">(Locked for Brand)</span>}
+              </label>
+              <div className="bg-white/5 p-1.5 rounded-full flex relative w-full">
+                {LISTING_TYPES.map(type => {
+                  const isActive = watchListingType === type.value;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      disabled={formMode === "BRAND"}
+                      onClick={() => setValue("listingType", type.value as any)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-full text-sm font-semibold transition-all duration-300 ${
+                        isActive
+                          ? "bg-amber-500/10 text-amber-400 shadow-sm ring-1 ring-amber-500/20"
+                          : "text-white/50 hover:text-white/70 hover:bg-white/5"
+                      }`}
+                    >
+                      <span className={isActive ? "opacity-100" : "opacity-60"}>{type.icon}</span>
+                      {type.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          {formMode === "BRAND" ? (
+            <motion.section 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-[#111118] p-8 rounded-2xl border border-white/5 space-y-8"
+            >
+              <div>
+                <h2 className="text-xl font-bold text-white mb-2">ข้อมูลแบรนด์</h2>
+                <p className="text-white/40 text-sm">สร้างชื่อแบรนด์ใหม่ เพื่อใช้ในการลงประกาศอสังหาริมทรัพย์</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <label className="text-[13px] font-bold text-white/60 mb-2 block">
+                    ชื่อแบรนด์/โครงการ <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...register("name", { required: "กรุณากรอกชื่อแบรนด์" })}
+                    placeholder="เช่น Nue REN, Life, Aspire..."
+                    className="w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                  />
+                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-[13px] font-bold text-white/60 mb-2 block">
+                    ประเภทการพัฒนา <span className="text-red-500">*</span>
+                  </label>
+                  <DarkSelect
+                    options={CATEGORIES}
+                    value={watch("category") || ""}
+                    onChange={(val) => setValue("category", val as any)}
+                    placeholder="เลือกประเภท"
+                  />
+                </div>
+              </div>
+
+            </motion.section>
+          ) : (
+            <>
+              {/* ข้อมูลทั่วไปโครงการ */}
           <section className="bg-[#111118] p-8 rounded-2xl border border-white/5 space-y-6">
             <h2 className="text-lg font-bold mb-6 text-white">ข้อมูลทั่วไปโครงการ</h2>
 
@@ -578,21 +730,36 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                   onClick={() => document.getElementById("file-upload")?.click()}
                   className="border-2 border-dashed border-white/10 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition cursor-pointer relative overflow-hidden group min-h-[220px]"
                 >
-                  {previewUrls.length > 0 ? (
+                  {images.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full" onClick={(e) => e.stopPropagation()}>
-                      {previewUrls.map((url, i) => (
-                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden group/img bg-black/20 border border-white/10">
-                          <img src={url} className="w-full h-full object-cover" alt={`Preview ${i + 1}`} />
+                      {images.map((img, i) => (
+                        <div 
+                          key={img.id} 
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, i)}
+                          onDragOver={(e) => handleDragOverImg(e, i)}
+                          onDrop={handleDropImg}
+                          className={`relative aspect-square rounded-xl overflow-hidden group/img bg-black/20 border-2 cursor-grab active:cursor-grabbing transition-all ${draggedIndex === i ? 'border-amber-500 opacity-50 scale-95' : 'border-white/10 hover:border-white/30'}`}
+                        >
+                          <img src={img.url} className="w-full h-full object-cover select-none pointer-events-none" alt={`Preview ${i + 1}`} />
+                          
+                          {/* Badge สำหรับรูปแรก */}
+                          {i === 0 && (
+                            <div className="absolute top-0 left-0 right-0 bg-amber-500/90 backdrop-blur-sm px-2 py-1.5 flex items-center justify-center pointer-events-none z-10">
+                              <span className="text-[15px] font-black text-black uppercase tracking-widest leading-none">รูปปก</span>
+                            </div>
+                          )}
+
                           <button 
                             type="button" 
                             onClick={(e) => removeImage(e, i)} 
-                            className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full backdrop-blur-md transition-all opacity-0 group-hover/img:opacity-100 scale-90 hover:scale-100 shadow-lg"
+                            className="absolute bottom-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full backdrop-blur-md transition-all md:opacity-0 group-hover/img:opacity-100 scale-90 hover:scale-100 shadow-lg z-20"
                           >
                             <X size={14} strokeWidth={3} />
                           </button>
                         </div>
                       ))}
-                      {previewUrls.length < 10 && (
+                      {images.length < 10 && (
                         <div 
                           onClick={() => document.getElementById("file-upload")?.click()}
                           className="aspect-square rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center hover:bg-white/5 transition cursor-pointer text-white/30 hover:text-white/60 gap-2"
@@ -721,30 +888,59 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                           initial={{ opacity: 0, height: 0, marginTop: 0, overflow: "hidden" }}
                           animate={{ opacity: 1, height: "auto", marginTop: 16, overflow: "visible" }}
                           exit={{ opacity: 0, height: 0, marginTop: 0, overflow: "hidden" }}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                          className="space-y-4"
                         >
-                          <div>
-                            <label className="text-[12px] font-bold text-white/50 mb-1.5 block">ประเภทส่วนลด</label>
-                            <DarkSelect
-                              options={[
-                                { value: "BAHT", label: "ลดเป็นบาท (Baht)" },
-                                { value: "PERCENT", label: "ลดเป็นเปอร์เซ็นต์ (%)" }
-                              ]}
-                              value={watch("discountType") || "BAHT"}
-                              onChange={(val) => setValue("discountType", val as any)}
-                            />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[12px] font-bold text-white/50 mb-1.5 block">ประเภทส่วนลด</label>
+                              <DarkSelect
+                                options={[
+                                  { value: "BAHT", label: "ลดเป็นบาท (Baht)" },
+                                  { value: "PERCENT", label: "ลดเป็นเปอร์เซ็นต์ (%)" }
+                                ]}
+                                value={watch("discountType") || "BAHT"}
+                                onChange={(val) => setValue("discountType", val as any)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[12px] font-bold text-white/50 mb-1.5 block">
+                                มูลค่าส่วนลด {watchDiscountType === "PERCENT" ? "(%)" : "(บาท)"}
+                              </label>
+                              <input
+                                type="number"
+                                {...register("discount")}
+                                placeholder={watchDiscountType === "PERCENT" ? "เช่น 5" : "เช่น 50000"}
+                                className="w-full p-3.5 bg-white/5 text-sm rounded-xl no-spinner outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-[12px] font-bold text-white/50 mb-1.5 block">
-                              มูลค่าส่วนลด
-                            </label>
-                            <input
-                              type="number"
-                              {...register("discount")}
-                              placeholder="เช่น 50000 หรือ 5"
-                              className="w-full p-3.5 bg-white/5 text-sm rounded-xl no-spinner outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
-                            />
-                          </div>
+
+                          {/* Real-time Net Price Display */}
+                          {saleNetPrice !== null && watchStartingPrice && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 rounded-xl border border-emerald-500/20"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-[11px] text-emerald-400/70 font-medium">ราคาขายสุทธิ (หลังหักส่วนลด)</p>
+                                  <p className="text-xl font-bold text-emerald-400 mt-1">
+                                    ฿{formatNumber(saleNetPrice)}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-[11px] text-red-400/70 font-medium">ส่วนลด</p>
+                                  <p className="text-sm font-bold text-red-400 mt-1">
+                                    {watchDiscountType === "PERCENT"
+                                      ? `-${watchDiscount || 0}% (฿${formatNumber(parseFloat(watchStartingPrice || "0") - (saleNetPrice || 0))})`
+                                      : `-฿${formatNumber(parseFloat(watchDiscount || "0"))}`
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -771,30 +967,17 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                 </div>
 
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="text-[13px] font-bold text-white/60 mb-2 block">
-                        ค่าเช่า (บาท/เดือน) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        {...register("rentPrice", { required: watchListingType !== "SALES" ? "กรุณากรอกค่าเช่า" : false })}
-                        placeholder="เช่น 15,000"
-                        className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
-                      />
-                      {errors.rentPrice && <p className="text-red-500 text-xs mt-1">{errors.rentPrice.message}</p>}
-                    </div>
-                    <div>
-                      <label className="text-[13px] font-bold text-white/60 mb-2 block">
-                        ค่าเช่าสุทธิ (หลังหักส่วนลด / โปรโมชั่น)
-                      </label>
-                      <input
-                        type="number"
-                        {...register("rentNetTotal")}
-                        placeholder="เช่น 14,000"
-                        className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
-                      />
-                    </div>
+                  <div>
+                    <label className="text-[13px] font-bold text-white/60 mb-2 block">
+                      ค่าเช่า (บาท/เดือน) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      {...register("rentPrice", { required: watchListingType !== "SALES" ? "กรุณากรอกค่าเช่า" : false })}
+                      placeholder="เช่น 15,000"
+                      className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                    />
+                    {errors.rentPrice && <p className="text-red-500 text-xs mt-1">{errors.rentPrice.message}</p>}
                   </div>
 
                   <div className="p-5 bg-white/5 rounded-xl border border-white/5 space-y-4">
@@ -815,30 +998,59 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                           initial={{ opacity: 0, height: 0, marginTop: 0, overflow: "hidden" }}
                           animate={{ opacity: 1, height: "auto", marginTop: 16, overflow: "visible" }}
                           exit={{ opacity: 0, height: 0, marginTop: 0, overflow: "hidden" }}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                          className="space-y-4"
                         >
-                          <div>
-                            <label className="text-[12px] font-bold text-white/50 mb-1.5 block">ประเภทส่วนลดเช่า</label>
-                            <DarkSelect
-                              options={[
-                                { value: "BAHT", label: "ลดเป็นบาท (Baht)" },
-                                { value: "PERCENT", label: "ลดเป็นเปอร์เซ็นต์ (%)" }
-                              ]}
-                              value={watch("rentDiscountType") || "BAHT"}
-                              onChange={(val) => setValue("rentDiscountType", val as any)}
-                            />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[12px] font-bold text-white/50 mb-1.5 block">ประเภทส่วนลดเช่า</label>
+                              <DarkSelect
+                                options={[
+                                  { value: "BAHT", label: "ลดเป็นบาท (Baht)" },
+                                  { value: "PERCENT", label: "ลดเป็นเปอร์เซ็นต์ (%)" }
+                                ]}
+                                value={watch("rentDiscountType") || "BAHT"}
+                                onChange={(val) => setValue("rentDiscountType", val as any)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[12px] font-bold text-white/50 mb-1.5 block">
+                                มูลค่าส่วนลด {watchRentDiscountType === "PERCENT" ? "(%)" : "(บาท)"}
+                              </label>
+                              <input
+                                type="number"
+                                {...register("rentDiscount")}
+                                placeholder={watchRentDiscountType === "PERCENT" ? "เช่น 5" : "เช่น 1000"}
+                                className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-[12px] font-bold text-white/50 mb-1.5 block">
-                              มูลค่าส่วนลด
-                            </label>
-                            <input
-                              type="number"
-                              {...register("rentDiscount")}
-                              placeholder="เช่น 1000 หรือ 5"
-                              className="no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
-                            />
-                          </div>
+
+                          {/* Real-time Rent Net Price Display */}
+                          {rentNetPrice !== null && watchRentPrice && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 rounded-xl border border-emerald-500/20"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-[11px] text-emerald-400/70 font-medium">ค่าเช่าสุทธิ (หลังหักส่วนลด)</p>
+                                  <p className="text-xl font-bold text-emerald-400 mt-1">
+                                    ฿{formatNumber(rentNetPrice)}/เดือน
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-[11px] text-red-400/70 font-medium">ส่วนลด</p>
+                                  <p className="text-sm font-bold text-red-400 mt-1">
+                                    {watchRentDiscountType === "PERCENT"
+                                      ? `-${watchRentDiscount || 0}% (฿${formatNumber(parseFloat(watchRentPrice || "0") - (rentNetPrice || 0))})`
+                                      : `-฿${formatNumber(parseFloat(watchRentDiscount || "0"))}`
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1047,35 +1259,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="text-[13px] font-bold text-white/60 mb-2 block">
-                    สถานะการอยู่อาศัย (Occupancy)
-                  </label>
-                  <DarkSelect
-                    options={[
-                      { value: "", label: "ไม่ระบุ" },
-                      { value: "VACANT", label: "ว่าง (Vacant)" },
-                      { value: "OCCUPIED", label: "มีผู้เช่า/ผู้พักอาศัย (Occupied)" }
-                    ]}
-                    value={watch("occupancy") || ""}
-                    onChange={(val) => setValue("occupancy", val as any)}
-                    placeholder="เลือกสถานะ"
-                  />
-                </div>
-                <div>
-                  <label className="text-[13px] font-bold text-white/60 mb-2 block">
-                    สภาพทรัพย์สิน (Condition 1-5)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    {...register("condition", { min: 1, max: 5 })}
-                    placeholder="1 = แย่สุด, 5 = ดีมาก"
-                    className=" no-spinner w-full p-3.5 bg-white/5 text-sm rounded-xl outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-[13px] font-bold text-white/60 mb-2 block">
                     วันที่พร้อมเข้าอยู่ (Available Date)
@@ -1094,6 +1278,8 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
               </div>
             </div>
           </section>
+            </>
+          )}
         </form>
       </motion.div>
 
@@ -1115,7 +1301,10 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
           <button
             type="button"
             onClick={fillMockData}
-            className="px-6 py-2.5 rounded-full flex items-center gap-2 text-blue-400 font-bold text-[13px] hover:bg-blue-500/10 transition-colors"
+            disabled={formMode === "BRAND"}
+            className={`px-6 py-2.5 rounded-full flex items-center gap-2 font-bold text-[13px] transition-colors ${
+              formMode === "BRAND" ? "text-white/20 cursor-not-allowed" : "text-blue-400 hover:bg-blue-500/10"
+            }`}
           >
             <Wand2 size={16} strokeWidth={2.5} />
             สุ่มข้อมูล
@@ -1126,14 +1315,14 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
             type="submit"
             form="property-form"
             disabled={isSubmitting || isConfirming}
-              className="px-8 py-2.5 rounded-full bg-amber-500 text-white font-bold text-[13px] shadow-[0_4px_14px_rgba(245,158,11,0.39)] hover:bg-amber-600 transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-8 py-2.5 rounded-full bg-amber-500 text-black font-bold text-[13px] shadow-[0_4px_14px_rgba(245,158,11,0.39)] hover:bg-amber-600 transition-all flex items-center gap-2 disabled:opacity-50"
           >
             {isSubmitting || isConfirming ? (
               "กำลังบันทึก..."
             ) : (
               <>
                 <Save size={16} strokeWidth={2.5} />
-                บันทึกโครงการ
+                {formMode === "BRAND" ? "บันทึกแบรนด์" : "บันทึกโครงการ"}
               </>
             )}
           </button>

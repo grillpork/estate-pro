@@ -30,6 +30,7 @@ import Navbar from "@/components/Navbar";
 import PropertyGallery from "@/components/PropertyGallery";
 import NearbyLandmarks from "@/components/NearbyLandmarks";
 import PropertyMap from "@/components/PropertyMap";
+import PropertyCards from "@/components/PropertyCards";
 import { api } from "@/lib/api";
 
 const PROPERTY_CARD_PREFIX = "__PROPERTY_CARD__:";
@@ -134,6 +135,8 @@ export default function PropertyDetailPage() {
     ? property.images.map((img: any) => `http://localhost:4000/${img.imagePath}`)
     : property.mainImage ? [`http://localhost:4000/${property.mainImage.imagePath}`] : [];
 
+  const isRent = property.listingType === "RENT" || property.category === "RENT";
+
   return (
     <div className="bg-[#0a0a0f] min-h-screen text-white pt-32 pb-32 font-sans selection:bg-amber-500/30">
       <Navbar />
@@ -171,11 +174,33 @@ export default function PropertyDetailPage() {
                    <MapPin size={16} className="text-amber-500" />
                    {property.district}, {property.province}
                 </p>
-                <div className="pt-6 flex flex-col gap-1">
+                <div className="pt-6 flex flex-col gap-2">
+                   {(isRent ? property.rentDiscountActive : property.discountActive) && (
+                     <div className="flex items-center gap-3">
+                        <span className="bg-rose-500/10 text-rose-500 text-[8px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-xl border border-rose-500/10 shadow-lg shadow-rose-500/5">
+                          Special Offer
+                        </span>
+                        <span className="text-white/20 text-2xl font-black line-through decoration-white/10 italic">
+                          ฿{Intl.NumberFormat("th-TH").format(isRent ? (property.rentPrice || 0) : (property.startingPrice || 0))}
+                        </span>
+                     </div>
+                   )}
                    <div className="flex items-baseline gap-3">
-                      <span className="text-5xl font-black text-amber-500">฿{Intl.NumberFormat("th-TH").format(property.startingPrice || 0)}</span>
-                      <span className="text-white/20 text-xs font-black uppercase tracking-[0.2rem]">Total Price</span>
+                      <span className="text-5xl md:text-10xl font-black text-white bg-clip-text text-transparent bg-linear-to-b from-amber-400 to-amber-600 drop-shadow-2xl">
+                        ฿{Intl.NumberFormat("th-TH").format(isRent ? (property.rentDiscountActive ? property.rentNetTotal : property.rentPrice) : (property.discountActive ? property.saleNetTotal : property.startingPrice) || 0)}
+                      </span>
+                      <span className="text-white/20 text-xs font-black uppercase tracking-[0.2rem] select-none">
+                        {isRent ? 'Per Month' : 'Total Price'}
+                      </span>
                    </div>
+                   {(isRent ? property.rentDiscountActive : property.discountActive) && (
+                     <div className="flex items-center gap-2 mt-2">
+                        <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                        <p className="text-emerald-500/80 text-[12px] font-black uppercase tracking-[0.2em]">
+                          คุณประหยัดไป ฿{Intl.NumberFormat("th-TH").format((isRent ? (property.rentPrice || 0) : (property.startingPrice || 0)) - (isRent ? (property.rentNetTotal || 0) : (property.saleNetTotal || 0)))}
+                        </p>
+                     </div>
+                   )}
                 </div>
               </section>
 
@@ -366,35 +391,15 @@ export default function PropertyDetailPage() {
              address={`${property.district}, ${property.province}`}
            />
 
-           {/* Reviews Section */}
-           <section className="pt-16 border-t border-white/5">
-              <div className="flex items-center gap-6 mb-12">
-                 <div className="flex items-center gap-3">
-                    <Star className="fill-amber-500 text-amber-500" size={32} />
-                    <span className="text-5xl font-black">4.92</span>
-                 </div>
-                 <div className="h-12 w-px bg-white/10"></div>
-                 <span className="text-white/30 font-black uppercase tracking-widest text-sm">12 Verified Reviews</span>
-              </div>
-              
-              {/* Mock Review Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 {[1, 2].map((i) => (
-                    <div key={i} className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5">
-                       <div className="flex items-center gap-4 mb-6">
-                          <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 font-bold">U{i}</div>
-                          <div>
-                             <h5 className="font-black text-white">Verified User</h5>
-                             <p className="text-white/20 text-xs font-bold">2 months ago</p>
-                          </div>
-                       </div>
-                       <p className="text-white/60 leading-relaxed">
-                          "Excellent property and very professional service. The location is perfect with easy access to the station. Highly recommended!"
-                       </p>
-                    </div>
-                 ))}
-              </div>
-           </section>
+           {/* Other Properties Section */}
+           <div className="pt-16 border-t border-white/5">
+              <PropertyCards 
+                title="อสังหาอื่นๆ" 
+                subtitle="โครงการอื่นๆ ที่คุณอาจสนใจ"
+                showViewAll={false}
+                excludeId={id as string}
+              />
+           </div>
         </div>
       </div>
     </div>

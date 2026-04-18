@@ -63,6 +63,7 @@ export default function PropertiesListingPage() {
       const data = await getAllPropertiesService();
       if (Array.isArray(data)) {
         const mapped = data.map((p: any) => ({
+            ...p,
             id: p.id.toString(),
             title: p.name || "โครงการคุณภาพ",
             description: p.description,

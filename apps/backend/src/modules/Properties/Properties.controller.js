@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, asc } from 'drizzle-orm'
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../database/schema/db.js'
@@ -36,6 +36,7 @@ const getPropertyByIdWithJoins = async (id) => {
         .select()
         .from(propertyImages)
         .where(eq(propertyImages.propertyId, Number(id)))
+        .orderBy(asc(propertyImages.order))
 
     return {
         ...row.property,
@@ -137,11 +138,10 @@ export const createProperty = async (req, res) => {
             'landArea', 'usableArea', 'totalUnits', 'parkingSpaces', 'parkingPercent',
             'studio', 'bedrooms', 'bathrooms', 'floor', 'building', 'commonFee',
             'estimatedInstallment', 'province', 'district', 'subDistrict', 'zipCode',
-            'facing', 'latitude', 'longitude', 'occupancy', 'ownerName', 'ownerPhone',
+            'facing', 'latitude', 'longitude', 'ownerName', 'ownerPhone',
             'availableDate', 'brandId', 'amenities', 'listingType', 'discount',
-            'discountActive', 'discountType', 'rentDiscount', 'rentDiscountActive',
-            'rentDiscountType', 'rentNetTotal', 'status', 'condition'
-
+            'discountActive', 'discountType', 'saleNetTotal', 'rentDiscount', 'rentDiscountActive',
+            'rentDiscountType', 'rentNetTotal', 'status'
         ]
 
         const insertData = {}
@@ -157,7 +157,6 @@ export const createProperty = async (req, res) => {
         if (insertData.bedrooms) insertData.bedrooms = Number(insertData.bedrooms)
         if (insertData.bathrooms) insertData.bathrooms = Number(insertData.bathrooms)
         if (insertData.floor) insertData.floor = Number(insertData.floor)
-        if (insertData.condition) insertData.condition = Number(insertData.condition)
 
         if (insertData.discountActive !== undefined) 
             insertData.discountActive = insertData.discountActive === 'true' || insertData.discountActive === true
@@ -212,6 +211,7 @@ export const createProperty = async (req, res) => {
                 propertyId: created.id,
                 imagePath: file.path.replace(process.cwd() + path.sep, '').replace(/\\/g, '/'),
                 isMain: index === 0,
+                order: index + 1,
             }))
 
             const inserted = await db
@@ -253,11 +253,10 @@ export const updateProperty = async (req, res) => {
             'landArea', 'usableArea', 'totalUnits', 'parkingSpaces', 'parkingPercent',
             'studio', 'bedrooms', 'bathrooms', 'floor', 'building', 'commonFee',
             'estimatedInstallment', 'province', 'district', 'subDistrict', 'zipCode',
-            'facing', 'latitude', 'longitude', 'occupancy', 'ownerName', 'ownerPhone',
+            'facing', 'latitude', 'longitude', 'ownerName', 'ownerPhone',
             'availableDate', 'brandId', 'amenities', 'listingType', 'discount',
-            'discountActive', 'discountType', 'rentDiscount', 'rentDiscountActive',
-            'rentDiscountType', 'rentNetTotal', 'status', 'condition'
-
+            'discountActive', 'discountType', 'saleNetTotal', 'rentDiscount', 'rentDiscountActive',
+            'rentDiscountType', 'rentNetTotal', 'status'
         ]
 
         const updateData = {}
@@ -492,15 +491,65 @@ export const updatePropertyImage = async (req, res) => {
                 .where(inArray(propertyImages.id, deleteIds))
         }
 
-        // 6. อัปโหลดรูปใหม่ (ถ้ามี)
-        if (files.length > 0) {
-            const insertData = files.map((file, index) => ({
-                propertyId: Number(id),
-                imagePath: file.path.replace(process.cwd() + path.sep, '').replace(/\\/g, '/'),
-                isMain: false, // เดี๋ยวค่อยมาตั้ง main ทีหลังถ้าว่าง
-            }))
+        let orderPayload = null;
+        if (body.orderPayload) {
+            try {
+                orderPayload = typeof body.orderPayload === 'string' ? JSON.parse(body.orderPayload) : body.orderPayload;
+            } catch(e) {
+                console.error("Failed to parse orderPayload", e);
+            }
+        }
 
-            await db.insert(propertyImages).values(insertData)
+        // 6. อัปเดตและอัปโหลดรูปภาพพร้อมจัดเรียงลำดับใหม่
+        if (orderPayload && Array.isArray(orderPayload)) {
+            const newImagesInsertData = [];
+            
+            // 6.1 วนลูปเพื่อเซ็ตค่า order ให้กับทุกรูปภาพตามลำดับ index ใน payload
+            for (let i = 0; i < orderPayload.length; i++) {
+                const item = orderPayload[i];
+                const newOrder = i + 1; // ลำดับที่ถูกต้อง (เริ่มจาก 1)
+                
+                if (item.type === 'existing' && item.id) {
+                    await db.update(propertyImages)
+                        .set({ order: newOrder })
+                        .where(eq(propertyImages.id, Number(item.id)));
+                } else if (item.type === 'new' && item.index !== undefined) {
+                    const fileIndex = Number(item.index);
+                    if (files[fileIndex]) {
+                        newImagesInsertData.push({
+                            propertyId: Number(id),
+                            imagePath: files[fileIndex].path.replace(process.cwd() + path.sep, '').replace(/\\/g, '/'),
+                            isMain: false,
+                            order: newOrder,
+                        });
+                    }
+                }
+            }
+
+            if (newImagesInsertData.length > 0) {
+                await db.insert(propertyImages).values(newImagesInsertData);
+            }
+        } else {
+            // Fallback กรณีไม่ได้ส่ง orderPayload มา
+            const retainedImages = await db
+                .select()
+                .from(propertyImages)
+                .where(eq(propertyImages.propertyId, Number(id)));
+                
+            const maxOrder = retainedImages.length > 0 
+                ? Math.max(...retainedImages.map(img => img.order || 0)) 
+                : 0;
+
+            if (files.length > 0) {
+                const insertData = files.map((file, index) => ({
+                    propertyId: Number(id),
+                    imagePath: file.path.replace(process.cwd() + path.sep, '').replace(/\\/g, '/'),
+                    isMain: false,
+                    order: maxOrder + index + 1,
+                }))
+
+                await db.insert(propertyImages).values(insertData)
+            }
         }
 
         // 7. จัดระเบียบ main image (ถ้า imageId เป็น null ให้เลือกรูปแรกเป็น main)
@@ -508,21 +557,27 @@ export const updatePropertyImage = async (req, res) => {
             .select()
             .from(propertyImages)
             .where(eq(propertyImages.propertyId, Number(id)))
-            .orderBy(propertyImages.id)
+            .orderBy(asc(propertyImages.order))
 
         if (refreshedImages.length > 0) {
-            // ถ้า imageId เดิมหายไป (โดนลบ) หรือไม่มีอยู่เลย ให้ชี้ไปที่รูปแรก
-            const [currentProp] = await db.select().from(properties).where(eq(properties.id, Number(id)))
+            const [currentProp] = await db.select().from(properties).where(eq(properties.id, Number(id)));
             
-            if (!currentProp.imageId) {
+            // รับประกันว่ามีแค่รูปเดียวที่เป็น isMain ใน DB (เพื่อความเรียบร้อย)
+            // เช็คว่ามีรูปหลักหรือไม่ และต้องให้ตรงกับรูปแรกเสมอ
+            const firstImage = refreshedImages[0];
+            const currentMainImgId = currentProp.imageId;
+
+            if (!currentMainImgId || !keepImageIds.includes(currentMainImgId) || currentMainImgId !== firstImage.id) {
+                // อัปเดต imageId ของ properties
                 await db
                     .update(properties)
-                    .set({ imageId: refreshedImages[0].id })
-                    .where(eq(properties.id, Number(id)))
-            }
+                    .set({ imageId: firstImage.id })
+                    .where(eq(properties.id, Number(id)));
 
-            // รับประกันว่ามีแค่รูปเดียวที่เป็น isMain ใน DB (เพื่อความเรียบร้อย)
-            // แต่ logic หลักเราใช้ imageId ในตาราง properties เป็นหลัก
+                // รีเซ็ต isMain ของรูปอื่นทั้งหมดเป็น false และให้รูปแรกสุดเป็น true
+                await db.update(propertyImages).set({ isMain: false }).where(eq(propertyImages.propertyId, Number(id)));
+                await db.update(propertyImages).set({ isMain: true }).where(eq(propertyImages.id, firstImage.id));
+            }
         }
 
         // Fetch again with joins for consistent output
@@ -640,6 +695,10 @@ export const uploadPropertyImages = async (req, res) => {
 
         const hasMain = currentImages.some(img => img.isMain)
 
+        const maxOrder = currentImages.length > 0 
+            ? Math.max(...currentImages.map(img => img.order || 0)) 
+            : 0;
+
         // prepare data
         const insertData = files.map((file, index) => ({
             propertyId,
@@ -647,6 +706,7 @@ export const uploadPropertyImages = async (req, res) => {
                 .replace(process.cwd() + path.sep, '')
                 .replace(/\\/g, '/'),
             isMain: !hasMain && index === 0,
+            order: maxOrder + index + 1,
         }))
 
         // insert
