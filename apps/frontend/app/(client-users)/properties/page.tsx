@@ -66,9 +66,6 @@ export default function PropertiesListingPage() {
             ...p,
             id: p.id.toString(),
             title: p.name || "โครงการคุณภาพ",
-            description: p.description,
-            floor: p.floor?.toString() || "-",
-            price: Number(p.startingPrice) || 0,
             address: [p.district, p.province].filter(Boolean).join(", ") || "กรุงเทพมหานคร",
             image: p.mainImage ? `http://localhost:4000/${p.mainImage}` : null,
             category: p.listingType

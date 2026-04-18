@@ -69,8 +69,15 @@ export default function PropertyCard({ property }: PropertyCardProps) {
   const idStr = String(property.id);
   const title = property.name || property.title || "PREMIUM PROJECT";
   const address = property.address || [property.district, property.province].filter(Boolean).join(", ") || "BANGKOK";
-  const price = property.startingPrice || property.price || 0;
-  const category = property.listingType || property.category || "SALE";
+  const category = (property.listingType || property.category || "SALE").toUpperCase();
+  const isRent = category === "RENT";
+
+  // Discount Logic
+  const hasDiscount = isRent ? property.rentDiscountActive : property.discountActive;
+  const originalPrice = isRent ? (property.rentPrice || 0) : (property.startingPrice || property.price || 0);
+  const netPrice = isRent 
+    ? (property.rentDiscountActive ? (property.rentNetTotal || 0) : (property.rentPrice || 0)) 
+    : (property.discountActive ? (property.saleNetTotal || 0) : (property.startingPrice || property.price || 0));
   
   // Handle image: could be an object from DB join, or string from mapping
   let img = property.image;
@@ -124,18 +131,24 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Floating Pills Overlay */}
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between pointer-events-none">
           <div className="flex gap-2">
-            <div className="bg-black/40 backdrop-blur-sm border border-transparent px-3 py-1.5 rounded-xl text-white flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                ฿ {Intl.NumberFormat("en-US").format(price)}
+            <div className="bg-black/40 backdrop-blur-sm border border-transparent px-3 py-1.5 rounded-xl text-white flex flex-col items-start gap-0.5 leading-none shadow-2xl">
+              {hasDiscount && (
+                <span className="text-[7px] font-black line-through text-white/40 uppercase tracking-tighter">
+                  ฿ {Intl.NumberFormat("en-US").format(originalPrice)}
+                </span>
+              )}
+              <span className={`text-[10px] font-black uppercase tracking-widest ${hasDiscount ? 'text-amber-400' : ''}`}>
+                ฿ {Intl.NumberFormat("en-US").format(netPrice)}
               </span>
             </div>
           </div>
           <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl text-slate-900 flex items-center gap-1.5 shadow-xl leading-none">
             <span className="text-[10px] font-black uppercase tracking-widest">
-              {category === "rent" || category === "RENT" ? "RENT" : "SALE"}
+              {isRent ? "RENT" : "SALE"}
             </span>
           </div>
         </div>
+
       </Link>
     </div>
   );
