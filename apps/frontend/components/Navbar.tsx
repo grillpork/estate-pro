@@ -44,7 +44,12 @@ const Navbar = () => {
     { name: "MESSAGES", href: "/conversations", icon: MessageSquare },
   ];
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === "/";
+    if (path === "/properties/create") return pathname === "/properties/create";
+    if (path === "/properties") return pathname.startsWith("/properties") && pathname !== "/properties/create";
+    return pathname.startsWith(path);
+  };
   const formatBadge = (count: number) => (count > 99 ? "99+" : String(count));
 
   useEffect(() => {

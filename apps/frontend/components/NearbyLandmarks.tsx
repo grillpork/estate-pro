@@ -51,8 +51,8 @@ export default function NearbyLandmarks({ lat, lng }: { lat: any; lng: any }) {
       
       try {
         setLoading(true);
-        // รัศมี 5 กิโลเมตร
-        const response = await api.get(`/landmarks/nearby?lat=${latitude}&lng=${longitude}&radius=5000`);
+        // รัศมี 3 กิโลเมตร
+        const response = await api.get(`/landmarks/nearby?lat=${latitude}&lng=${longitude}&radius=3000`);
         setLandmarks(response.data.stations || []);
       } catch (error) {
         console.error("Failed to fetch landmarks:", error);

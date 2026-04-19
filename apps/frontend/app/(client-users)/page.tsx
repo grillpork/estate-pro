@@ -5,7 +5,6 @@ import CarouselEmbla from "@/components/CarouselEmbla";
 import PromotionBento from "@/components/PromotionBento";
 import PropertyCards from "@/components/PropertyCards";
 import NearbyStations from "@/components/NearbyStations";
-import PopularLocations from "@/components/PopularLocations";
 import RecentlyListed from "@/components/RecentlyListed";
 
 export default async function HomePage() {
@@ -24,7 +23,6 @@ export default async function HomePage() {
 
       {/* Interactive Discover Sections */}
       <NearbyStations />
-      <PopularLocations />
       <RecentlyListed />
 
       
