@@ -58,9 +58,6 @@ export default function RecentlyListed() {
         }
     }, [activeFilter, allProperties])
 
-    const handleFilterClick = (filter: 'SALE' | 'RENT') => {
-        setActiveFilter(prev => prev === filter ? 'ALL' : filter)
-    }
 
     const handleToggleFavorite = async (e: React.MouseEvent, propertyId: string) => {
         e.preventDefault()
@@ -102,27 +99,25 @@ export default function RecentlyListed() {
                         <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">ประกาศล่าสุด</h2>
                         <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">ที่อยู่อาศัยใหม่ล่าสุดในตลาด</p>
                     </div>
-                    <div className="flex gap-2">
-                        <button 
-                            onClick={() => handleFilterClick('SALE')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 ${
-                                activeFilter === 'SALE'
-                                ? 'bg-amber-500 text-black border-amber-500 shadow-lg shadow-amber-500/20'
-                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20'
-                            }`}
-                        >
-                            ขาย
-                        </button>
-                        <button 
-                            onClick={() => handleFilterClick('RENT')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 ${
-                                activeFilter === 'RENT'
-                                ? 'bg-emerald-500 text-black border-emerald-500 shadow-lg shadow-emerald-500/20'
-                                : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20'
-                            }`}
-                        >
-                            เช่า
-                        </button>
+                    {/* Filters */}
+                    <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
+                        {[
+                            { id: 'ALL', label: 'ทั้งหมด' },
+                            { id: 'SALE', label: 'ขาย' },
+                            { id: 'RENT', label: 'เช่า' },
+                        ].map((filter) => (
+                            <button
+                                key={filter.id}
+                                onClick={() => setActiveFilter(filter.id as any)}
+                                className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 border ${
+                                    activeFilter === filter.id
+                                        ? "bg-amber-500 border-amber-500 text-black shadow-lg shadow-amber-500/20"
+                                        : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white"
+                                }`}
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>

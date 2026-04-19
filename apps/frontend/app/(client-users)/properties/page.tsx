@@ -8,8 +8,9 @@ export default function PropertiesRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    // ส่งผู้ใช้ไปที่หน้า Filter หลักแบบ Dynamic
-    router.replace("/properties/all");
+    // ส่งผู้ใช้ไปที่หน้า Filter หลักแบบ Dynamic พร้อม query parameters
+    const currentParams = window.location.search;
+    router.replace(`/properties/all${currentParams}`);
   }, [router]);
 
   return (

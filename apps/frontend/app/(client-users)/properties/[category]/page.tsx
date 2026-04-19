@@ -51,6 +51,19 @@ const categories = [
   { id: 'TOWNHOME', name: 'Townhome', icon: Warehouse, value: 'TOWNHOME' },
 ];
 
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; // Distance in km
+}
+
 export default function CategoryPropertiesPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -69,6 +82,12 @@ export default function CategoryPropertiesPage() {
   const maxPrice = searchParams.get('maxPrice') || '';
   const selectedBrandId = searchParams.get('brandId') || '';
   const searchQuery = searchParams.get('q') || '';
+  const latParam = searchParams.get('lat');
+  const lngParam = searchParams.get('lng');
+  const radiusParam = searchParams.get('radius');
+  const stationParam = searchParams.get('station');
+  
+  const displaySearchQuery = stationParam ? stationParam : searchQuery;
 
   const [localMinPrice, setLocalMinPrice] = useState(Number(minPrice) || 0);
   const [localMaxPrice, setLocalMaxPrice] = useState(Number(maxPrice) || 50000000);
@@ -122,7 +141,7 @@ export default function CategoryPropertiesPage() {
       const data = await getAllPropertiesService(apiFilters);
       
       if (Array.isArray(data)) {
-        const mapped = data.map((p: any) => ({
+        let mapped = data.map((p: any) => ({
             id: p.id.toString(),
             title: p.name || "โครงการคุณภาพ",
             description: p.description,
@@ -131,8 +150,25 @@ export default function CategoryPropertiesPage() {
             address: [p.district, p.province].filter(Boolean).join(", ") || "กรุงเทพมหานคร",
             image: p.mainImage ? `http://localhost:4000/${p.mainImage}` : null,
             category: p.listingType,
-            brandId: p.brandId
+            brandId: p.brandId,
+            latitude: p.latitude,
+            longitude: p.longitude
         }));
+
+        if (latParam && lngParam && radiusParam) {
+            const lat = parseFloat(latParam);
+            const lng = parseFloat(lngParam);
+            const radius = parseFloat(radiusParam);
+            
+            mapped = mapped.filter((p: any) => {
+                if (!p.latitude || !p.longitude) return false;
+                const propLat = parseFloat(p.latitude);
+                const propLng = parseFloat(p.longitude);
+                const distance = calculateDistance(lat, lng, propLat, propLng);
+                return distance <= radius;
+            });
+        }
+
         setProperties(mapped);
       }
     } catch (error) {
@@ -203,9 +239,10 @@ export default function CategoryPropertiesPage() {
                         <Search className="w-5 h-5 text-white/30 group-focus-within:text-amber-500" />
                         <input 
                             name="search"
-                            defaultValue={searchQuery}
+                            defaultValue={displaySearchQuery}
                             placeholder="Search by location, project, or brand..." 
                             className="bg-transparent border-none outline-none text-white text-lg w-full font-medium placeholder:text-white/20"
+                            readOnly={!!stationParam}
                         />
                     </div>
                     <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-amber-500/20">
