@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { Search, Building2, Home, MapPin, TrendingUp, ShieldCheck, Zap, ArrowRight, Heart } from "lucide-react";
 import StartChatEmptyState from "@/components/StartChatEmptyState";
@@ -22,7 +23,9 @@ export default async function HomePage() {
       <PropertyCards />
 
       {/* Interactive Discover Sections */}
-      <NearbyStations />
+      <React.Suspense fallback={<div className="h-20" />}>
+        <NearbyStations />
+      </React.Suspense>
       <RecentlyListed />
 
       

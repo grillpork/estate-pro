@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { landmarkService } from '@/services/client/landmark'
 import { getAllPropertiesService } from '@/services/client/property'
 import GenericCarousel from './GenericCarousel'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 const LINE_COLORS: { [key: string]: string } = {
     'Blue': '#0055A4',
@@ -42,6 +42,27 @@ export default function NearbyStations() {
     const [loading, setLoading] = useState(true)
     const [activeFilter, setActiveFilter] = useState<'ALL' | 'BTS' | 'MRT'>('ALL')
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const stationType = searchParams.get('stationType')
+
+    useEffect(() => {
+        if (stationType === 'MRT') {
+            setActiveFilter('MRT');
+        } else if (stationType === 'BTS') {
+            setActiveFilter('BTS');
+        }
+    }, [stationType]);
+
+    // เพิ่มตัวดักจับสัญญาณ (Custom Event Listener)
+    useEffect(() => {
+        const handleFilterEvent = (e: any) => {
+            if (e.detail) {
+                setActiveFilter(e.detail);
+            }
+        };
+        window.addEventListener('filterStations', handleFilterEvent);
+        return () => window.removeEventListener('filterStations', handleFilterEvent);
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -111,7 +132,7 @@ export default function NearbyStations() {
     }
 
     return (
-        <section className="py-20 relative overflow-hidden">
+        <section id="nearby-stations" className="py-20 relative overflow-hidden">
             {/* Header */}
             <div className="w-full px-6 md:px-12 lg:px-16 mb-12">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
