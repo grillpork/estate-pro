@@ -35,11 +35,14 @@ type Property = {
 
 type User = {
   id: string;
-  name: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   role: string;
   status: string;
-  image: string;
+  image?: string;
+  imagePath?: string;
   createdAt: string;
   verified: string;
   subscribed: string;
@@ -353,12 +356,16 @@ const UserLists = () => {
                       <div className="flex justify-center relative w-10 h-10 mx-auto group/avatar cursor-pointer">
                         <img
                           src={
-                            user.image ||
-                            "https://ui-avatars.com/api/?name=" +
-                              user.name +
-                              "&background=random"
+                            (user.imagePath || user.image)
+                              ? (user.imagePath || user.image)?.startsWith('http')
+                                ? (user.imagePath || user.image)
+                                : `http://localhost:4000/${user.imagePath || user.image}`
+                              : "/images/userIcon.png"
                           }
-                          alt={user.name}
+                          onError={(e) => {
+                             e.currentTarget.src = "/images/userIcon.png";
+                          }}
+                          alt={user.firstName || user.name || "User"}
                           className="w-10 h-10 rounded-full object-cover border-2 border-[#1A1A1E] shadow-sm group-hover/avatar:opacity-75 transition-opacity"
                         />
                         <input
@@ -390,7 +397,7 @@ const UserLists = () => {
                             router.push(`/dashboard/users/${user.id}`)
                           }
                         >
-                          {user.name || "Unknown User"}
+                          {(user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null)) || "Unknown User"}
                         </span>
                         <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-0.5">
                           <Mail size={12} />

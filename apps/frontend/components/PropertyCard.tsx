@@ -115,7 +115,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
       </div>
 
       {/* Main Visual */}
-      <Link href={`/properties/${idStr}`} className="relative aspect-4/3 rounded-[24px] overflow-hidden bg-neutral-500 mt-auto">
+      <Link href={`/properties/listing/${idStr}`} className="relative aspect-4/3 rounded-[24px] overflow-hidden bg-neutral-500 mt-auto">
         {img ? (
           <img
             src={img}

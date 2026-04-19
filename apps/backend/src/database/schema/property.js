@@ -70,6 +70,7 @@ export const properties = pgTable("properties", {
     .notNull()
     .default("BAHT"),
   rentNetTotal: numeric("rent_net_total", { precision: 15, scale: 2 }),
+  saleNetTotal: numeric("sale_net_total", { precision: 15, scale: 2 }),
   status: propertyStatusEnum("status").notNull().default("pending"),
   rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),

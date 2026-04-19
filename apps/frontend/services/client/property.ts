@@ -47,7 +47,7 @@ export const getPropertyById = async (id: string) => {
   return response.data;
 };
 
-export const getAllPropertiesService = async () => {
-  const response = await api.get("/properties");
+export const getAllPropertiesService = async (params?: any) => {
+  const response = await api.get("/properties", { params });
   return response.data;
 };
