@@ -1,5 +1,5 @@
 import express from 'express'
-import { getUsers, updateUser, deleteUser, getStats, getNotifications, getAdminProperties, getLogs, searchUsers, markAsRead, markAllAsRead, updatePropertyStatus } from './admin.controller.js'
+import { getUsers, updateUser, deleteUser, getStats, getNotifications, getAdminProperties, getLogs, searchUsers, markAsRead, markAllAsRead, updatePropertyStatus, deletePropertyAdmin } from './admin.controller.js'
 import { getAllReportsAdmin, updateReportStatusAdmin } from '../reports/report.controller.js'
 import { verifyToken } from '../../middleware/auth.middleware.js'
 import { requireAdmin } from '../../middleware/requireAdmin.middleware.js'
@@ -19,6 +19,7 @@ router.put('/notifications/read-all', markAllAsRead)
 router.put('/notifications/:id/read', markAsRead)
 router.get('/properties', getAdminProperties)
 router.put('/properties/:id/status', updatePropertyStatus)
+router.delete('/properties/:id', deletePropertyAdmin)
 router.get('/logs', getLogs)
 router.get('/reports', getAllReportsAdmin)
 router.patch('/reports/:id/status', updateReportStatusAdmin)

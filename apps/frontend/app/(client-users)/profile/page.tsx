@@ -197,18 +197,7 @@ export default function ProfilePage() {
             <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 text-white font-bold transition-all text-sm group">
               <User size={18} className="text-amber-500" /> ข้อมูลส่วนตัว
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
-              <Settings size={18} /> ตั้งค่าทั่วไป
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
-              <Key size={18} /> ความปลอดภัย
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
-              <Bell size={18} /> การแจ้งเตือน
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
-              <CreditCard size={18} /> การชำระเงิน
-            </button>
+            
             <Link href="/my-subscription" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition-all text-sm">
               <Crown size={18} /> แพ็กเกจของฉัน
             </Link>

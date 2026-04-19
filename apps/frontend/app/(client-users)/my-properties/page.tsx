@@ -162,7 +162,7 @@ export default function MyPropertiesPage() {
                     
                     <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => router.push(`/properties/${property.id}/edit`)}
+                          onClick={() => router.push(`/properties/listing/${property.id}/edit`)}
                           className="p-3 rounded-xl bg-white/5 text-white/60 hover:text-amber-400 hover:bg-amber-500/10 transition-all border border-transparent hover:border-amber-500/20"
                           title="แก้ไข"
                         >

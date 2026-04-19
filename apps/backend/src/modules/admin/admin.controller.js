@@ -1,9 +1,7 @@
-import { db } from '../../database/db.js'
-import { users, roles } from '../../database/schema/user.js'
-import { properties, propertyImages } from '../../database/schema/property.js'
-import { notifications } from '../../database/schema/notifications.js'
-import { userSubscriptions } from '../../database/schema/userSubscriptions.js'
-import { membershipPlans } from '../../database/schema/membershipPlans.js'
+import { db } from '../../database/schema/db.js'
+import fs from 'fs'
+import path from 'path'
+import { users, roles, properties, propertyImages, notifications, userSubscriptions, membershipPlans, favorites, conversations } from '../../database/schema/index.js'
 import { eq, sql, count } from 'drizzle-orm'
 
 // GET /admin/users
@@ -400,6 +398,61 @@ export const getLogs = async (req, res) => {
         return res.status(200).json(mappedLogs);
     } catch (error) {
         console.error('Get logs error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// DELETE /admin/properties/:id
+export const deletePropertyAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // 1. ค้นหาโครงการเพื่อตรวจสอบว่ามีอยู่จริง
+        const [existing] = await db
+            .select()
+            .from(properties)
+            .where(eq(properties.id, parseInt(id)));
+
+        if (!existing) {
+            return res.status(404).json({ message: 'Property not found' });
+        }
+
+        // 2. เคลียร์ความสัมพันธ์ในตารางอื่นก่อน (Foreign Key Cleanup)
+        
+        // 2.1 ลบข้อมูล Favorites ที่ผูกกับอสังหาฯ นี้
+        await db.delete(favorites).where(eq(favorites.propertyId, parseInt(id)));
+
+        // 2.2 ปรับข้อมูลในแชท (Conversations) ให้เป็น null เพื่อไม่ให้แชทพังแต่ประวัติยังอยู่
+        await db.update(conversations)
+            .set({ propertyId: null })
+            .where(eq(conversations.propertyId, parseInt(id)));
+
+        // 3. เคลียร์ imageId ใน properties ก่อน เพื่อหลบ Foreign Key Constraint
+        await db.update(properties)
+            .set({ imageId: null })
+            .where(eq(properties.id, parseInt(id)));
+
+        // 4. ดึงรายชื่อรูปทั้งหมดเพื่อลบไฟล์ใน Disk
+        const pImages = await db.select().from(propertyImages).where(eq(propertyImages.propertyId, parseInt(id)));
+
+        for (const img of pImages) {
+            if (img.imagePath) {
+                const fullPath = path.resolve(process.cwd(), img.imagePath);
+                if (fs.existsSync(fullPath)) {
+                    fs.unlinkSync(fullPath);
+                }
+            }
+        }
+
+        // 5. ลบข้อมูลรูปภาพใน Database
+        await db.delete(propertyImages).where(eq(propertyImages.propertyId, parseInt(id)));
+
+        // 6. ลบข้อมูลอสังหาฯ ใน Database
+        await db.delete(properties).where(eq(properties.id, parseInt(id)));
+
+        return res.status(200).json({ message: 'Property deleted successfully by Admin' });
+    } catch (error) {
+        console.error('Delete property admin error:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
 }

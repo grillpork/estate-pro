@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
 
   // 2. Define protected routes
   const isProtectedRoute = pathname.startsWith("/properties/create") || pathname.startsWith("/profile");
-  const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/dashboard");
 
   if (isProtectedRoute || isAdminRoute) {
     if (!token) {
@@ -53,5 +53,5 @@ export function middleware(request: NextRequest) {
 
 // Config to specify which routes this middleware applies to
 export const config = {
-  matcher: ["/auth/:path*", "/properties/create/:path*", "/admin/:path*", "/profile/:path*"],
+  matcher: ["/auth/:path*", "/properties/create/:path*", "/admin/:path*", "/dashboard/:path*", "/profile/:path*"],
 };
