@@ -1,4 +1,4 @@
-import { eq, inArray, asc } from 'drizzle-orm'
+import { eq, inArray, asc, and, or, gte, lte, like, ilike } from 'drizzle-orm'
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../database/schema/db.js'
@@ -47,9 +47,63 @@ const getPropertyByIdWithJoins = async (id) => {
     }
 }
 
-// GET /properties
+// GET /properties (with filtering support)
 export const getAllProperties = async (req, res) => {
     try {
+        // Extract query parameters
+        const {
+            category,  // Will filter by brand.category
+            brandId,
+            minPrice,
+            maxPrice,
+            q
+        } = req.query
+
+        // Build WHERE conditions
+        const conditions = [eq(properties.status, 'approved')]
+
+        // Filter by category through brand.category
+        if (category && category !== 'all' && category !== '') {
+            const brandsWithCategory = await db
+                .select({ id: brands.id })
+                .from(brands)
+                .where(eq(brands.category, category.toUpperCase()))
+
+            const brandIds = brandsWithCategory.map(b => b.id)
+            if (brandIds.length > 0) {
+                conditions.push(inArray(properties.brandId, brandIds))
+            } else {
+                // No brands match this category, return empty
+                return res.json([])
+            }
+        }
+
+        // Filter by brandId (overrides category if both provided)
+        if (brandId && brandId !== 'all' && brandId !== '') {
+            conditions.push(eq(properties.brandId, Number(brandId)))
+        }
+
+        // Filter by price range
+        if (minPrice) {
+            conditions.push(gte(properties.startingPrice, parseFloat(minPrice)))
+        }
+        if (maxPrice) {
+            conditions.push(lte(properties.startingPrice, parseFloat(maxPrice)))
+        }
+
+        // Search by query (name or description)
+        if (q && q !== '') {
+            const searchTerm = `%${q}%`
+            conditions.push(
+                or(
+                    ilike(properties.name, searchTerm),
+                    ilike(properties.description, searchTerm),
+                    ilike(properties.province, searchTerm),
+                    ilike(properties.district, searchTerm)
+                )
+            )
+        }
+
         const result = await db
             .select({
                 property: properties,
@@ -59,8 +113,7 @@ export const getAllProperties = async (req, res) => {
             .from(properties)
             .leftJoin(propertyImages, eq(properties.imageId, propertyImages.id))
             .leftJoin(brands, eq(properties.brandId, brands.id))
-            .where(eq(properties.status, 'approved'))
-
+            .where(and(...conditions))
 
         // Format the output to be cleaner
         const formattedResult = result.map(row => ({
@@ -134,7 +187,7 @@ export const createProperty = async (req, res) => {
         const body = { ...req.body }
 
         const validFields = [
-            'name', 'description', 'startingPrice', 'rentPrice', 'projectArea', 
+            'name', 'description', 'startingPrice', 'rentPrice', 'projectArea',
             'landArea', 'usableArea', 'totalUnits', 'parkingSpaces', 'parkingPercent',
             'studio', 'bedrooms', 'bathrooms', 'floor', 'building', 'commonFee',
             'estimatedInstallment', 'province', 'district', 'subDistrict', 'zipCode',
@@ -158,7 +211,7 @@ export const createProperty = async (req, res) => {
         if (insertData.bathrooms) insertData.bathrooms = Number(insertData.bathrooms)
         if (insertData.floor) insertData.floor = Number(insertData.floor)
 
-        if (insertData.discountActive !== undefined) 
+        if (insertData.discountActive !== undefined)
             insertData.discountActive = insertData.discountActive === 'true' || insertData.discountActive === true
         if (insertData.status !== undefined) {
             insertData.status = insertData.status.toLowerCase();
@@ -249,7 +302,7 @@ export const updateProperty = async (req, res) => {
 
         // ป้องการการส่งฟิลด์ที่ไม่มีใน DB เช่น category, mainImage, brand, images
         const validFields = [
-            'name', 'description', 'startingPrice', 'rentPrice', 'projectArea', 
+            'name', 'description', 'startingPrice', 'rentPrice', 'projectArea',
             'landArea', 'usableArea', 'totalUnits', 'parkingSpaces', 'parkingPercent',
             'studio', 'bedrooms', 'bathrooms', 'floor', 'building', 'commonFee',
             'estimatedInstallment', 'province', 'district', 'subDistrict', 'zipCode',
@@ -300,7 +353,7 @@ export const updateProperty = async (req, res) => {
 
         const [updated] = await db
             .update(properties)
-            .set({ 
+            .set({
                 ...updateData,
                 updatedAt: new Date()
             })
@@ -428,13 +481,13 @@ export const updatePropertyImage = async (req, res) => {
 
         const { id } = req.params
         const body = req.body || {}
-        
+
         // keepImageIds อาจจะส่งมาเป็น string (จาก FormData) เช่น "1,2,3" หรือเป็น array [1,2,3]
         let keepImageIds = []
         if (body.keepImageIds) {
-           keepImageIds = typeof body.keepImageIds === 'string' 
-             ? body.keepImageIds.split(',').map(id => Number(id.trim()))
-             : Array.isArray(body.keepImageIds) ? body.keepImageIds.map(id => Number(id)) : []
+            keepImageIds = typeof body.keepImageIds === 'string'
+                ? body.keepImageIds.split(',').map(id => Number(id.trim()))
+                : Array.isArray(body.keepImageIds) ? body.keepImageIds.map(id => Number(id)) : []
         }
 
         const files = req.files && req.files.length > 0
@@ -463,7 +516,7 @@ export const updatePropertyImage = async (req, res) => {
 
         // 3. แยกรูปที่จะลบ (ตัวที่ ID ไม่อยู่ใน keepImageIds)
         const imagesToDelete = oldImages.filter(img => !keepImageIds.includes(img.id))
-        
+
         // 4. ลบไฟล์รูปที่ไม่ได้ใช้แล้วออกจาก disk
         for (const img of imagesToDelete) {
             const oldPath = path.resolve(process.cwd(), img.imagePath)
@@ -477,7 +530,7 @@ export const updatePropertyImage = async (req, res) => {
         // 5. ลบ record เฉพาะรูปที่ไม่ต้องการเก็บไว้
         if (imagesToDelete.length > 0) {
             const deleteIds = imagesToDelete.map(img => img.id)
-            
+
             // เช็คว่า imageId ของ property กำลังชี้ไปที่ตัวที่กำลังจะลบหรือไม่
             if (deleteIds.includes(existingProperty.imageId)) {
                 await db
@@ -495,7 +548,7 @@ export const updatePropertyImage = async (req, res) => {
         if (body.orderPayload) {
             try {
                 orderPayload = typeof body.orderPayload === 'string' ? JSON.parse(body.orderPayload) : body.orderPayload;
-            } catch(e) {
+            } catch (e) {
                 console.error("Failed to parse orderPayload", e);
             }
         }
@@ -503,12 +556,12 @@ export const updatePropertyImage = async (req, res) => {
         // 6. อัปเดตและอัปโหลดรูปภาพพร้อมจัดเรียงลำดับใหม่
         if (orderPayload && Array.isArray(orderPayload)) {
             const newImagesInsertData = [];
-            
+
             // 6.1 วนลูปเพื่อเซ็ตค่า order ให้กับทุกรูปภาพตามลำดับ index ใน payload
             for (let i = 0; i < orderPayload.length; i++) {
                 const item = orderPayload[i];
                 const newOrder = i + 1; // ลำดับที่ถูกต้อง (เริ่มจาก 1)
-                
+
                 if (item.type === 'existing' && item.id) {
                     await db.update(propertyImages)
                         .set({ order: newOrder })
@@ -535,9 +588,9 @@ export const updatePropertyImage = async (req, res) => {
                 .select()
                 .from(propertyImages)
                 .where(eq(propertyImages.propertyId, Number(id)));
-                
-            const maxOrder = retainedImages.length > 0 
-                ? Math.max(...retainedImages.map(img => img.order || 0)) 
+
+            const maxOrder = retainedImages.length > 0
+                ? Math.max(...retainedImages.map(img => img.order || 0))
                 : 0;
 
             if (files.length > 0) {
@@ -561,7 +614,7 @@ export const updatePropertyImage = async (req, res) => {
 
         if (refreshedImages.length > 0) {
             const [currentProp] = await db.select().from(properties).where(eq(properties.id, Number(id)));
-            
+
             // รับประกันว่ามีแค่รูปเดียวที่เป็น isMain ใน DB (เพื่อความเรียบร้อย)
             // เช็คว่ามีรูปหลักหรือไม่ และต้องให้ตรงกับรูปแรกเสมอ
             const firstImage = refreshedImages[0];
@@ -695,8 +748,8 @@ export const uploadPropertyImages = async (req, res) => {
 
         const hasMain = currentImages.some(img => img.isMain)
 
-        const maxOrder = currentImages.length > 0 
-            ? Math.max(...currentImages.map(img => img.order || 0)) 
+        const maxOrder = currentImages.length > 0
+            ? Math.max(...currentImages.map(img => img.order || 0))
             : 0;
 
         // prepare data
