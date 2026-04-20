@@ -1,0 +1,252 @@
+{
+    "stations": [
+        {
+            "code": "BL01",
+            "name": "สถานีท่าพระ",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.7296593,
+            "lng": 100.4740885
+        },
+        {
+            "code": "BL02",
+            "name": "สถานีจรัญฯ 13",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.74005671,
+            "lng": 100.4707321
+        },
+        {
+            "code": "BL03",
+            "name": "สถานีไฟฉาย",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.7557305,
+            "lng": 100.4693411
+        },
+        {
+            "code": "BL04",
+            "name": "สถานีบางขุนนนท์",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.76334485,
+            "lng": 100.4733652
+        },
+        {
+            "code": "BL05",
+            "name": "สถานีบางยี่ขัน",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.77747388,
+            "lng": 100.4853472
+        },
+        {
+            "code": "BL06",
+            "name": "สถานีสิรินธร",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.783808,
+            "lng": 100.4932301
+        },
+        {
+            "code": "BL07",
+            "name": "สถานีบางพลัด",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.79238778,
+            "lng": 100.5048644
+        },
+        {
+            "code": "BL08",
+            "name": "สถานีบางอ้อ",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.79899246,
+            "lng": 100.5097903
+        },
+        {
+            "code": "BL09",
+            "name": "สถานีบางโพ",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.80640723,
+            "lng": 100.5211039
+        },
+        {
+            "code": "BL11",
+            "name": "สถานีบางซื่อ",
+            "system": "MRT",
+            "line": "Blue",
+            "lat": 13.80235091,
+            "lng": 100.5410375
+        },
+        {
+            "code": "PP01",
+            "name": "สถานีคลองบางไผ่",
+            "system": "MRT",
+            "line": "Purple",
+            "lat": 13.89238779,
+            "lng": 100.4082208
+        },
+        {
+            "code": "PP02",
+            "name": "สถานีตลาดบางใหญ่",
+            "system": "MRT",
+            "line": "Purple",
+            "lat": 13.88103687,
+            "lng": 100.4092903
+        },
+        {
+            "code": "YL01",
+            "name": "สถานีลาดพร้าว",
+            "system": "MRT",
+            "line": "Yellow",
+            "lat": 13.80697302,
+            "lng": 100.5747539
+        },
+        {
+            "code": "YL02",
+            "name": "สถานีภาวนา",
+            "system": "MRT",
+            "line": "Yellow",
+            "lat": 13.80013312,
+            "lng": 100.5841789
+        },
+        {
+            "code": "CEN",
+            "name": "สถานีสยาม",
+            "system": "BTS",
+            "line": "Interchange",
+            "lat": 13.74565407,
+            "lng": 100.5342208
+        },
+        {
+            "code": "N1",
+            "name": "สถานีราชเทวี",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.75181733,
+            "lng": 100.5315607
+        },
+        {
+            "code": "N2",
+            "name": "สถานีพญาไท",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.75695565,
+            "lng": 100.5338228
+        },
+        {
+            "code": "N3",
+            "name": "สถานีอนุสาวรีย์ชัยสมรภูมิ",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.76270271,
+            "lng": 100.5370322
+        },
+        {
+            "code": "N4",
+            "name": "สถานีสนามเป้า",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.77255111,
+            "lng": 100.542072
+        },
+        {
+            "code": "N5",
+            "name": "สถานีอารีย์",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.77954984,
+            "lng": 100.5445779
+        },
+        {
+            "code": "N7",
+            "name": "สถานีสะพานควาย",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.79386254,
+            "lng": 100.5497496
+        },
+        {
+            "code": "N8",
+            "name": "สถานีหมอชิต",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.80262297,
+            "lng": 100.5538124
+        },
+        {
+            "code": "E1",
+            "name": "สถานีชิดลม",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.74409858,
+            "lng": 100.5430322
+        },
+        {
+            "code": "E2",
+            "name": "สถานีเพลินจิต",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.74302972,
+            "lng": 100.5491559
+        },
+        {
+            "code": "E3",
+            "name": "สถานีนานา",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.74063159,
+            "lng": 100.5553355
+        },
+        {
+            "code": "E4",
+            "name": "สถานีอโศก",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.73701993,
+            "lng": 100.560425
+        },
+        {
+            "code": "E5",
+            "name": "สถานีพร้อมพงษ์",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.73051676,
+            "lng": 100.5696098
+        },
+        {
+            "code": "E6",
+            "name": "สถานีทองหล่อ",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.72429562,
+            "lng": 100.5784631
+        },
+        {
+            "code": "E7",
+            "name": "สถานีเอกมัย",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.71955261,
+            "lng": 100.5851253
+        },
+        {
+            "code": "E8",
+            "name": "สถานีพระโขนง",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.71526531,
+            "lng": 100.5911801
+        },
+        {
+            "code": "E9",
+            "name": "สถานีอ่อนนุช",
+            "system": "BTS",
+            "line": "Sukhumvit",
+            "lat": 13.70562929,
+            "lng": 100.6010353
+        }
+    ]
+}
