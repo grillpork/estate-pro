@@ -369,7 +369,7 @@ export const updateProperty = async (req, res) => {
                 userId: null,
                 title: 'Property Modified',
                 message: `The property "${updated.name}" has been modified by the owner and requires re-approval.`,
-                type: 'PROPERTY_PENDING',
+                type: 'PROPERTY_MODIFIED',
                 status: 'unread'
             });
         }
@@ -658,7 +658,7 @@ export const updatePropertyImage = async (req, res) => {
                 userId: null,
                 title: 'Property Images Updated',
                 message: `The images for "${existingProperty?.name || 'a property'}" have been updated by the owner and require re-approval.`,
-                type: 'PROPERTY_PENDING',
+                type: 'PROPERTY_MODIFIED',
                 status: 'unread'
             });
         }
