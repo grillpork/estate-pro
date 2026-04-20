@@ -2,6 +2,56 @@ import { eq, and, count } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
 import { userSubscriptions, membershipPlans, properties } from '../../database/schema/index.js'
 
+/**
+ * Utility function: Get active subscription with quota info for a user
+ * @param {number} userId
+ * @returns {Promise<{subscription, plan, currentListings, maxListings}>}
+ */
+export const getActiveSubscriptionWithQuota = async (userId) => {
+  // 1. หา active subscription
+  const activeSubs = await db
+    .select({
+      subscription: userSubscriptions,
+      plan: membershipPlans,
+    })
+    .from(userSubscriptions)
+    .innerJoin(membershipPlans, eq(userSubscriptions.planId, membershipPlans.id))
+    .where(
+      and(
+        eq(userSubscriptions.userId, userId),
+        eq(userSubscriptions.status, 'active')
+      )
+    )
+    .limit(1)
+
+  if (activeSubs.length === 0) {
+    return {
+      subscription: null,
+      plan: null,
+      currentListings: 0,
+      maxListings: null,
+    }
+  }
+
+  const { subscription, plan } = activeSubs[0]
+
+  // 2. นับจำนวน property
+  const [propertyCount] = await db
+    .select({ count: count() })
+    .from(properties)
+    .where(eq(properties.userId, userId))
+
+  const currentListings = propertyCount.count
+  const maxListings = plan.maxListings
+
+  return {
+    subscription,
+    plan,
+    currentListings,
+    maxListings,
+  }
+}
+
 /** GET /user-subscriptions — Admin only */
 export const getAllUserSubscriptions = async (req, res) => {
   try {
