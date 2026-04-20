@@ -1,4 +1,4 @@
-import { eq, and, count } from 'drizzle-orm'
+﻿import { eq, and, count } from 'drizzle-orm'
 import { db } from '../../database/schema/db.js'
 import { userSubscriptions, membershipPlans, properties } from '../../database/schema/index.js'
 
@@ -172,6 +172,8 @@ export const updateUserSubscription = async (req, res) => {
   try {
     const { id } = req.params
     const userId = Number(req.user?.id)
+    const userRole = req.user?.role?.toLowerCase()
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin'
 
     const [existing] = await db
       .select()
@@ -182,12 +184,23 @@ export const updateUserSubscription = async (req, res) => {
       return res.status(404).json({ message: 'Subscription not found' })
     }
 
-    if (existing.userId !== userId) {
+    if (!isAdmin && existing.userId !== userId) {
       return res.status(403).json({ message: 'Forbidden: not your subscription' })
     }
 
-    const { billingCycle, startDate, endDate, status, autoRenew } = req.body
+    const { planId, billingCycle, startDate, endDate, status, autoRenew } = req.body
     const body = { updatedAt: new Date() }
+
+    if (planId !== undefined) {
+      const [plan] = await db
+        .select()
+        .from(membershipPlans)
+        .where(eq(membershipPlans.id, Number(planId)))
+      if (!plan) {
+        return res.status(404).json({ message: 'Membership plan not found' })
+      }
+      body.planId = Number(planId)
+    }
 
     if (billingCycle !== undefined) {
       if (!['monthly', 'yearly'].includes(billingCycle)) {
@@ -195,8 +208,16 @@ export const updateUserSubscription = async (req, res) => {
       }
       body.billingCycle = billingCycle
     }
-    if (startDate !== undefined) body.startDate = new Date(startDate)
-    if (endDate !== undefined) body.endDate = new Date(endDate)
+    if (startDate !== undefined && startDate !== '' && startDate !== null) {
+      const d = new Date(startDate)
+      if (isNaN(d.getTime())) return res.status(400).json({ message: 'Invalid startDate' })
+      body.startDate = d
+    }
+    if (endDate !== undefined && endDate !== '' && endDate !== null) {
+      const d = new Date(endDate)
+      if (isNaN(d.getTime())) return res.status(400).json({ message: 'Invalid endDate' })
+      body.endDate = d
+    }
     if (status !== undefined) body.status = status
     if (autoRenew !== undefined) body.autoRenew = autoRenew
 
@@ -312,6 +333,8 @@ export const deleteUserSubscription = async (req, res) => {
   try {
     const { id } = req.params
     const userId = Number(req.user?.id)
+    const userRole = req.user?.role?.toLowerCase()
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin'
 
     const [existing] = await db
       .select()
@@ -322,7 +345,7 @@ export const deleteUserSubscription = async (req, res) => {
       return res.status(404).json({ message: 'Subscription not found' })
     }
 
-    if (existing.userId !== userId) {
+    if (!isAdmin && existing.userId !== userId) {
       return res.status(403).json({ message: 'Forbidden: not your subscription' })
     }
 

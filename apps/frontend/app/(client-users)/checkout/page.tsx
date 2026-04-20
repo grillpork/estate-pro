@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, CreditCard, Loader2, ArrowLeft } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { adminMembershipPlansService, MembershipPlan } from "@/services/admin/membershipPlans";
 import { clientUserSubscriptionsService } from "@/services/client/userSubscriptions";
 import { toast } from "sonner";
@@ -19,6 +19,8 @@ const CheckoutPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [existingPlanName, setExistingPlanName] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (!planId || !cycle) {
@@ -26,10 +28,23 @@ const CheckoutPage = () => {
       return;
     }
 
-    const fetchPlan = async () => {
+    const fetchData = async () => {
       try {
-        const data = await adminMembershipPlansService.getPlanById(Number(planId));
-        setPlan(data);
+        const [planData, mySubs] = await Promise.all([
+          adminMembershipPlansService.getPlanById(Number(planId)),
+          clientUserSubscriptionsService.getMySubscription().catch(() => []),
+        ]);
+        setPlan(planData);
+
+        const activeSub = mySubs.find((s) => s.status === "active");
+        if (activeSub) {
+          try {
+            const activePlan = await adminMembershipPlansService.getPlanById(activeSub.planId);
+            setExistingPlanName(activePlan.name);
+          } catch {
+            setExistingPlanName("แพลนปัจจุบัน");
+          }
+        }
       } catch (error) {
         console.error("Failed to load plan", error);
         toast.error("Failed to load plan details.");
@@ -38,10 +53,19 @@ const CheckoutPage = () => {
         setIsLoading(false);
       }
     };
-    fetchPlan();
+    fetchData();
   }, [planId, cycle, router]);
 
+  const handlePayClick = () => {
+    if (existingPlanName) {
+      setShowConfirm(true);
+    } else {
+      handleMockPayment();
+    }
+  };
+
   const handleMockPayment = async () => {
+    setShowConfirm(false);
     if (!plan) return;
     setIsProcessing(true);
 
@@ -103,6 +127,16 @@ const CheckoutPage = () => {
               <p className="text-white/60">Review your order details below.</p>
             </div>
 
+            {existingPlanName && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 mb-6">
+                <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+                <div>
+                  <p className="text-amber-400 font-bold text-sm">คุณมีแพลน "{existingPlanName}" อยู่แล้ว</p>
+                  <p className="text-amber-400/60 text-xs mt-1">หากสมัครแพลนใหม่ แพลนเดิมจะถูกยกเลิกทันที</p>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8">
               <div className="flex items-start justify-between mb-6 pb-6 border-b border-white/10">
                 <div>
@@ -161,7 +195,7 @@ const CheckoutPage = () => {
                 ) : (
                   <motion.button
                     key="pay-button"
-                    onClick={handleMockPayment}
+                    onClick={handlePayClick}
                     disabled={isProcessing}
                     whileTap={{ scale: 0.98 }}
                     className="w-full py-4 rounded-xl font-bold text-[#0a0a0f] bg-linear-to-r from-amber-400 to-amber-600 hover:shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -177,11 +211,59 @@ const CheckoutPage = () => {
                   </motion.button>
                 )}
               </AnimatePresence>
-              
+
             </div>
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+            onClick={() => setShowConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#18181b] border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle className="text-amber-500" size={24} />
+                </div>
+                <h3 className="text-xl font-black text-white">ยืนยันการเปลี่ยนแพลน</h3>
+              </div>
+              <p className="text-white/60 text-sm mb-2">
+                คุณกำลังใช้แพลน <span className="text-amber-400 font-bold">"{existingPlanName}"</span> อยู่
+              </p>
+              <p className="text-white/60 text-sm mb-6">
+                หากสมัครแพลน <span className="text-white font-bold">"{plan?.name}"</span> แพลนเดิมจะถูกยกเลิกทันทีและไม่สามารถคืนเงินได้ ต้องการดำเนินการต่อหรือไม่?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 py-3 rounded-xl border border-white/10 text-white/70 hover:bg-white/5 font-bold text-sm transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleMockPayment}
+                  className="flex-1 py-3 rounded-xl bg-amber-500 text-black font-bold text-sm hover:bg-amber-400 transition-colors"
+                >
+                  ยืนยัน สมัครแพลนใหม่
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

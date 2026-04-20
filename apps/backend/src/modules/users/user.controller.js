@@ -1,6 +1,6 @@
 import { db } from '../../database/schema/db.js';
 import { users, properties, propertyImages, brands } from '../../database/schema/index.js';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
@@ -12,7 +12,7 @@ export const getAllUsers = async (req, res) => {
 
 export const getUserById = async (req, res) => {
     console.log('Current user metadata (req.user):', req.user);
-    const id = req.params.id;         
+    const id = req.params.id;
     const user = await db.select()
         .from(users)
         .where(eq(users.id, Number(id)));
@@ -70,7 +70,7 @@ export const getPublicProfile = async (req, res) => {
 
         return res.json({
             user,
-            properties: formattedProperties
+            properties: formattedProperties,
         });
     } catch (err) {
         console.error('getPublicProfile error:', err);

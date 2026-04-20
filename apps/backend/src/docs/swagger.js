@@ -132,7 +132,6 @@ export const swaggerDocument = {
                     priceYearly: { type: 'number' },
                     maxListings: { type: 'integer' },
                     canChat: { type: 'boolean' },
-                    canViewOwnerContact: { type: 'boolean' },
                     isActive: { type: 'boolean' },
                     createdAt: { type: 'string', format: 'date-time' },
                     updatedAt: { type: 'string', format: 'date-time' },
@@ -148,7 +147,6 @@ export const swaggerDocument = {
                     priceYearly: { type: 'number', example: 2990 },
                     maxListings: { type: 'integer', example: 50 },
                     canChat: { type: 'boolean', example: true },
-                    canViewOwnerContact: { type: 'boolean', example: true },
                     isActive: { type: 'boolean', example: true },
                 },
             },
@@ -810,15 +808,19 @@ export const swaggerDocument = {
                 parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
                 requestBody: {
                     required: true,
-                    content: { 'application/json': { schema: {
-                        type: 'object',
-                        properties: {
-                            billingCycle: { type: 'string', enum: ['monthly', 'yearly'] },
-                            status: { type: 'string' },
-                            autoRenew: { type: 'boolean' },
-                            endDate: { type: 'string', format: 'date-time' },
-                        },
-                    } } },
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    billingCycle: { type: 'string', enum: ['monthly', 'yearly'] },
+                                    status: { type: 'string' },
+                                    autoRenew: { type: 'boolean' },
+                                    endDate: { type: 'string', format: 'date-time' },
+                                },
+                            }
+                        }
+                    },
                 },
                 responses: {
                     200: { description: 'Updated subscription', content: { 'application/json': { schema: { $ref: '#/components/schemas/UserSubscription' } } } },

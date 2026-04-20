@@ -7,7 +7,6 @@ export type MembershipPlan = {
   priceMonthly: string;
   priceYearly: string;
   maxListings: number;
-  canViewOwnerContact: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

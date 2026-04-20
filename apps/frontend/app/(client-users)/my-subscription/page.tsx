@@ -15,7 +15,6 @@ import {
     Loader2,
     Building2,
     MessageSquare,
-    Eye,
     Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -403,16 +402,7 @@ function ActiveSubscriptionCard({
                                 value="เปิดใช้งาน"
                                 active
                             />
-                            <FeatureItem
-                                icon={Eye}
-                                label="ดูข้อมูลเจ้าของ"
-                                value={
-                                    plan.canViewOwnerContact
-                                        ? "เปิดใช้งาน"
-                                        : "ไม่สามารถใช้ได้"
-                                }
-                                active={plan.canViewOwnerContact}
-                            />
+
                         </div>
                     </div>
                 )}

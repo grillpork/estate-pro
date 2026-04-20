@@ -10,7 +10,6 @@ import {
   X,
   Crown,
   MessageCircle,
-  Eye,
   ListChecks,
   ToggleLeft,
   ToggleRight,
@@ -28,7 +27,6 @@ const emptyForm: CreateMembershipPlanPayload = {
   priceMonthly: "0",
   priceYearly: "0",
   maxListings: 1,
-  canViewOwnerContact: false,
   isActive: true,
 };
 
@@ -81,7 +79,6 @@ const MembershipPlansList = () => {
       priceMonthly: plan.priceMonthly,
       priceYearly: plan.priceYearly,
       maxListings: plan.maxListings,
-      canViewOwnerContact: plan.canViewOwnerContact,
       isActive: plan.isActive,
     });
     setModalOpen(true);
@@ -280,15 +277,7 @@ const MembershipPlansList = () => {
                     <ListChecks size={12} />
                     {plan.maxListings} Listings
                   </span>
-                  <span
-                    className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg ${plan.canViewOwnerContact
-                      ? "bg-sky-500/10 text-sky-400"
-                      : "bg-[#0F0F12] text-neutral-600 line-through"
-                      }`}
-                  >
-                    <Eye size={12} />
-                    Owner Contact
-                  </span>
+
                 </div>
               </motion.div>
             ))}
@@ -409,11 +398,6 @@ const MembershipPlansList = () => {
                     Permissions
                   </label>
                   {[
-                    {
-                      key: "canViewOwnerContact",
-                      label: "Can View Owner Contact",
-                      icon: <Eye size={14} />,
-                    },
                     {
                       key: "isActive",
                       label: "Active (visible to users)",

@@ -184,14 +184,7 @@ const PricingPage = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${plan.canViewOwnerContact ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-white/30"}`}>
-                        {plan.canViewOwnerContact ? <Check size={14} strokeWidth={3} /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
-                      </div>
-                      <span className={`text-sm ${plan.canViewOwnerContact ? "" : "text-white/40"}`}>
-                        View restricted owner contacts
-                      </span>
-                    </div>
+
                   </div>
 
                   <button
