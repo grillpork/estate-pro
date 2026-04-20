@@ -45,12 +45,13 @@ const CreatePropertyPage = () => {
   if (quota && !quota.canCreateListing) {
     const isNoSub = quota.code === "NO_SUBSCRIPTION";
     const isExpired = quota.code === "SUBSCRIPTION_EXPIRED";
+    const isFreeLimit = quota.code === "FREE_LISTING_LIMIT_REACHED";
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] px-4">
         <div className="max-w-md w-full bg-[#111118] border border-white/8 rounded-2xl p-8 text-center space-y-6">
           <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-            {isNoSub || isExpired ? (
+            {isNoSub || isExpired || isFreeLimit ? (
               <ShieldAlert size={32} className="text-amber-400" />
             ) : (
               <Crown size={32} className="text-amber-400" />
@@ -63,17 +64,19 @@ const CreatePropertyPage = () => {
                 ? "คุณยังไม่ได้สมัครแพลน"
                 : isExpired
                   ? "แพลนของคุณหมดอายุแล้ว"
-                  : "ลงประกาศครบจำนวนสูงสุดแล้ว"}
+                  : isFreeLimit
+                    ? "ลงประกาศครบจำนวนฟรี"
+                    : "ลงประกาศครบจำนวนสูงสุดแล้ว"}
             </h2>
             <p className="text-white/50 text-sm">{quota.message}</p>
           </div>
 
-          {quota.code === "MAX_LISTINGS_REACHED" && (
+          {(quota.code === "MAX_LISTINGS_REACHED" || isFreeLimit) && (
             <div className="bg-white/5 rounded-xl p-4 text-sm">
               <div className="flex justify-between text-white/60 mb-1">
                 <span>แพลนปัจจุบัน</span>
                 <span className="text-amber-400 font-semibold">
-                  {quota.planName}
+                  {quota.planName || "แพลนฟรี"}
                 </span>
               </div>
               <div className="flex justify-between text-white/60">
@@ -86,7 +89,7 @@ const CreatePropertyPage = () => {
           )}
 
           <div className="flex flex-col gap-3">
-            {(isNoSub || isExpired) && (
+            {(isNoSub || isExpired || isFreeLimit) && (
               <Link
                 href="/pricing"
                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-linear-to-r from-amber-500 to-amber-600 text-black font-bold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all text-sm"
@@ -126,7 +129,7 @@ const CreatePropertyPage = () => {
 
   return (
     <div>
-      <ListingProperty onSubmit={handleAfterSubmit} />
+      <ListingProperty onSubmit={handleAfterSubmit} quotaInfo={quota} />
     </div>
   );
 };

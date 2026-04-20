@@ -234,48 +234,72 @@ export const checkQuota = async (req, res) => {
       )
       .limit(1)
 
-    if (activeSubs.length === 0) {
-      return res.json({
-        hasSubscription: false,
-        canCreateListing: false,
-        code: 'NO_SUBSCRIPTION',
-        message: 'คุณยังไม่ได้สมัครแพลน กรุณาสมัครแพลนก่อนลงประกาศ',
-      })
-    }
+    // ถ้ามี subscription
+    if (activeSubs.length > 0) {
+      const { subscription, plan } = activeSubs[0]
 
-    const { subscription, plan } = activeSubs[0]
+      // เช็คหมดอายุ
+      if (subscription.endDate && new Date(subscription.endDate) < new Date()) {
+        return res.json({
+          hasSubscription: true,
+          canCreateListing: false,
+          code: 'SUBSCRIPTION_EXPIRED',
+          message: 'แพลนของคุณหมดอายุแล้ว กรุณาต่ออายุหรือสมัครแพลนใหม่',
+          planName: plan.name,
+        })
+      }
 
-    // 2. เช็คหมดอายุ
-    if (subscription.endDate && new Date(subscription.endDate) < new Date()) {
+      // นับจำนวน property
+      const [propertyCount] = await db
+        .select({ count: count() })
+        .from(properties)
+        .where(eq(properties.userId, userId))
+
+      const currentListings = propertyCount.count
+      const maxListings = plan.maxListings
+      const canCreate = maxListings === null || currentListings < maxListings
+
       return res.json({
         hasSubscription: true,
-        canCreateListing: false,
-        code: 'SUBSCRIPTION_EXPIRED',
-        message: 'แพลนของคุณหมดอายุแล้ว กรุณาต่ออายุหรือสมัครแพลนใหม่',
+        canCreateListing: canCreate,
+        code: canCreate ? 'OK' : 'MAX_LISTINGS_REACHED',
+        message: canCreate
+          ? null
+          : `คุณลงประกาศครบจำนวนสูงสุดของแพลน ${plan.name} แล้ว (${maxListings} รายการ)`,
         planName: plan.name,
+        currentListings,
+        maxListings,
       })
     }
 
-    // 3. นับจำนวน property
+    // ถ้าไม่มี subscription (new user) — อนุญาตให้ลง 1 รายการฟรี
     const [propertyCount] = await db
       .select({ count: count() })
       .from(properties)
       .where(eq(properties.userId, userId))
 
     const currentListings = propertyCount.count
-    const maxListings = plan.maxListings
-    const canCreate = maxListings === null || currentListings < maxListings
 
+    // ถ้าเกิน 1 รายการแล้ว
+    if (currentListings >= 1) {
+      return res.json({
+        hasSubscription: false,
+        canCreateListing: false,
+        code: 'FREE_LISTING_LIMIT_REACHED',
+        message: 'คุณลงประกาศครบจำนวนฟรี (1 รายการ) แล้ว กรุณาสมัครแพลนเพื่อลงประกาศเพิ่มเติม',
+        currentListings,
+        maxListings: 1,
+      })
+    }
+
+    // อนุญาตให้ลง 1 รายการฟรี
     return res.json({
-      hasSubscription: true,
-      canCreateListing: canCreate,
-      code: canCreate ? 'OK' : 'MAX_LISTINGS_REACHED',
-      message: canCreate
-        ? null
-        : `คุณลงประกาศครบจำนวนสูงสุดของแพลน ${plan.name} แล้ว (${maxListings} รายการ)`,
-      planName: plan.name,
+      hasSubscription: false,
+      canCreateListing: true,
+      code: 'FREE_LISTING_ALLOWED',
+      message: 'คุณสามารถลงประกาศ 1 รายการฟรีได้',
       currentListings,
-      maxListings,
+      maxListings: 1,
     })
   } catch (error) {
     console.error('checkQuota error:', error)

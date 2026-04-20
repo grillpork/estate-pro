@@ -79,6 +79,11 @@ interface ListingPropertyProps {
   initialData?: any;
   onSubmit?: (data: any) => Promise<void>;
   onCancel?: () => void;
+  quotaInfo?: {
+    code?: string;
+    isFreeListingWarning?: boolean;
+    hasSubscription?: boolean;
+  };
 }
 
 // --- Constants ---
@@ -211,7 +216,7 @@ function DarkSelect({
   );
 }
 
-export default function ListingProperty({ initialData, onSubmit, onCancel }: ListingPropertyProps) {
+export default function ListingProperty({ initialData, onSubmit, onCancel, quotaInfo }: ListingPropertyProps) {
   const router = useRouter();
   type ImageItem = { id: string; type: 'existing' | 'new'; url: string; file?: File; dbId?: number };
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -584,6 +589,17 @@ export default function ListingProperty({ initialData, onSubmit, onCancel }: Lis
           <h1 className="text-[28px] font-bold text-white mb-1">เริ่มลงประกาศของคุณ</h1>
           <p className="text-white/40 text-[15px]">กรอกข้อมูลให้ครบถ้วน เพื่อให้ผู้ค้นหาเจออสังหาฯ ของคุณได้ง่ายขึ้น</p>
         </header>
+
+        {/* Free Listing Warning */}
+        {quotaInfo?.code === "FREE_LISTING_ALLOWED" && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+            <Tag size={20} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-300 text-sm font-semibold">นี่คือการลงประกาศฟรี</p>
+              <p className="text-amber-200/70 text-xs mt-1">คุณสามารถลงประกาศได้ 1 รายการ หากต้องการเพิ่มเติม กรุณาสมัครแพลน</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6" id="property-form">
 
