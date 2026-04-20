@@ -5,18 +5,15 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../database/db.js'
 import { users, roles } from '../../database/schema/index.js'
 
-// POST /auth/register
 export const register = async (req, res) => {
     try {
         const { email, password, username, firstName, lastName, phoneNumber } = req.body
 
-        // 1. เช็ค format email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email)) {
             return res.status(400).json({ message: 'Invalid email format' })
         }
 
-        // 2. เช็คว่า email ซ้ำไหม
         const existing = await db
             .select()
             .from(users)
@@ -26,14 +23,18 @@ export const register = async (req, res) => {
             return res.status(409).json({ message: 'Email already exists' })
         }
 
-        // 3. หา role 'user' พื้นฐาน
-        const userRoles = await db.select().from(roles).where(eq(roles.name, 'user'))
-        const defaultRoleId = userRoles[0]?.id || null
+        if (!password || password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' })
+        }
 
-        // 4. Hash password ก่อน save
+        const userRoles = await db.select().from(roles).where(eq(roles.name, 'user'))
+        if (!userRoles[0]) {
+            return res.status(500).json({ message: 'Default role not found, please seed roles first' })
+        }
+        const defaultRoleId = userRoles[0].id
+
         const hashedPassword = await bcrypt.hash(password, 10)
 
-        // 5. INSERT ลง database
         await db.insert(users).values({
             email,
             password: hashedPassword,
@@ -51,12 +52,10 @@ export const register = async (req, res) => {
     }
 }
 
-// POST /auth/login
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body
 
-        // 1. หา user จาก email พร้อมข้อมูล role
         const result = await db
             .select({
                 id: users.id,
@@ -71,19 +70,16 @@ export const login = async (req, res) => {
 
         const user = result[0]
 
-        // 2. ถ้าไม่เจอ user ตอบ 401
         if (!user) {
             return res.status(401).json({ message: 'Invalid username or password' })
         }
 
-        // 3. เทียบ password กับ hash ใน DB
         const isMatch = await bcrypt.compare(password, user.password)
 
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid username or password' })
         }
 
-        // 4. สร้าง JWT token (payload: email + role)
         const token = jwt.sign(
             {
                 id: user.id,
@@ -91,7 +87,7 @@ export const login = async (req, res) => {
                 role: user.role,
             },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' } // token หมดอายุใน 7 วัน
+            { expiresIn: '7d' }
         )
 
         return res.status(200).json({
@@ -174,7 +170,6 @@ export const heartbeat = async (req, res) => {
     }
 }
 
-// POST /auth/forgot-password
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body
@@ -190,11 +185,9 @@ export const forgotPassword = async (req, res) => {
             return res.status(200).json({ message: 'If an account with that email exists, a reset link has been sent.' })
         }
 
-        // Generate a secure random token
         const resetToken = crypto.randomBytes(32).toString('hex')
-        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000)
 
-        // Store hashed token in DB
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
         await db.update(users).set({
             resetToken: hashedToken,
@@ -202,7 +195,6 @@ export const forgotPassword = async (req, res) => {
             updatedAt: new Date(),
         }).where(eq(users.id, user.id))
 
-        // Build reset URL
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
         const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
 
@@ -221,7 +213,6 @@ export const forgotPassword = async (req, res) => {
     }
 }
 
-// POST /auth/reset-password
 export const resetPassword = async (req, res) => {
     try {
         const { token, email, newPassword } = req.body
@@ -234,26 +225,22 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ message: 'Password must be at least 6 characters' })
         }
 
-        // Find user by email
         const [user] = await db.select().from(users).where(eq(users.email, email))
 
         if (!user) {
             return res.status(400).json({ message: 'Invalid or expired reset token' })
         }
 
-        // Verify token
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
         if (!user.resetToken || user.resetToken !== hashedToken) {
             return res.status(400).json({ message: 'Invalid or expired reset token' })
         }
 
-        // Check expiry
         if (!user.resetTokenExpiry || new Date(user.resetTokenExpiry) < new Date()) {
             return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' })
         }
 
-        // Hash new password and update
         const hashedPassword = await bcrypt.hash(newPassword, 10)
 
         await db.update(users).set({

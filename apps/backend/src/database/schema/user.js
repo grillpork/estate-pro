@@ -4,12 +4,12 @@ export const users = pgTable("users", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
-  username: varchar("username", { length: 255 }), // Increase length
-  firstName: varchar("first_name", { length: 255 }), // Increase length
-  lastName: varchar("last_name", { length: 255 }), // Increase length
+  username: varchar("username", { length: 255 }),
+  firstName: varchar("first_name", { length: 255 }),
+  lastName: varchar("last_name", { length: 255 }),
   imagePath: varchar("image_path", { length: 255 }),
-  phoneNumber: varchar("phone_number", { length: 255 }), // Increase length
-  roleId: integer("role_id").references(() => roles.id), // nullable: ป้องกัน data-loss บน rows เดิม
+  phoneNumber: varchar("phone_number", { length: 255 }),
+  roleId: integer("role_id").references(() => roles.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastSeen: timestamp("last_seen"),
@@ -20,7 +20,7 @@ export const users = pgTable("users", {
 
 export const roles = pgTable("roles", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar("name", { length: 255 }).notNull().unique(), // Increase length
+  name: varchar("name", { length: 255 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
