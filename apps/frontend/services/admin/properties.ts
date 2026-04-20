@@ -44,10 +44,11 @@ export const adminPropertiesService = {
     return response.data;
   },
 
-  updatePropertyStatus: async (id: string, status: string, reason?: string) => {
+  updatePropertyStatus: async (id: string, status: string, reason?: string, brandId?: string) => {
     const response = await api.put(`/admin/properties/${id}/status`, {
       status,
       reason,
+      brandId,
     });
     return response.data;
   },

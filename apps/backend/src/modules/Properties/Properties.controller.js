@@ -194,7 +194,7 @@ export const createProperty = async (req, res) => {
             'facing', 'latitude', 'longitude', 'ownerName', 'ownerPhone',
             'availableDate', 'brandId', 'amenities', 'listingType', 'discount',
             'discountActive', 'discountType', 'saleNetTotal', 'rentDiscount', 'rentDiscountActive',
-            'rentDiscountType', 'rentNetTotal', 'status'
+            'rentDiscountType', 'rentNetTotal', 'status', 'userEnteredBrand', 'category'
         ]
 
         const insertData = {}
@@ -309,7 +309,7 @@ export const updateProperty = async (req, res) => {
             'facing', 'latitude', 'longitude', 'ownerName', 'ownerPhone',
             'availableDate', 'brandId', 'amenities', 'listingType', 'discount',
             'discountActive', 'discountType', 'saleNetTotal', 'rentDiscount', 'rentDiscountActive',
-            'rentDiscountType', 'rentNetTotal', 'status'
+            'rentDiscountType', 'rentNetTotal', 'status', 'userEnteredBrand', 'category'
         ]
 
         const updateData = {}

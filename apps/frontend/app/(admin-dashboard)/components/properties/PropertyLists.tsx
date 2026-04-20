@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { adminPropertiesService } from "@/services/admin/properties";
 import {
   Trash2,
@@ -15,7 +16,18 @@ import {
   Home,
   Building2,
   Bell,
+  Eye,
+  Tag,
+  DollarSign,
+  Maximize2,
+  Bed,
+  Bath,
+  Hash,
+  XCircle,
+  FileText,
+  Plus
 } from "lucide-react";
+import { brandsService } from "@/services/client/brands";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Property = {
@@ -23,9 +35,14 @@ type Property = {
   title: string;
   description: string;
   price: number;
+  rentPrice?: number;
   image: string;
   status: string;
   type?: string;
+  category: string;
+  listingType: string;
+  userEnteredBrand?: string;
+  brandId?: number;
   Owner: {
     name: string;
     email?: string;
@@ -34,6 +51,9 @@ type Property = {
   amenities: string[];
   createdAt: string;
   location?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  usableArea?: string;
 };
 
 const filterStatusOptions = [
@@ -42,6 +62,13 @@ const filterStatusOptions = [
   { id: 2, name: "approved", label: "อนุมัติแล้ว" },
   { id: 3, name: "rejected", label: "ไม่อนุมัติ" },
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  DETACHED_HOUSE: "บ้านเดี่ยว",
+  TWIN_HOUSE: "บ้านแฝด",
+  TOWNHOME: "ทาวน์โฮม",
+  CONDOMINIUM: "คอนโดมิเนียม",
+};
 
 const PropertyLists = () => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -67,6 +94,15 @@ const PropertyLists = () => {
     propertyId: string | null;
   }>({ isOpen: false, propertyId: null });
 
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [allBrands, setAllBrands] = useState<{ id: number; name: string; category: string }[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState<string>("");
+  const [isBrandErrorModalOpen, setIsBrandErrorModalOpen] = useState(false);
+  const [isCreatingBrand, setIsCreatingBrand] = useState(false);
+  const [quickBrandName, setQuickBrandName] = useState("");
+  const [isAddingNewBrand, setIsAddingNewBrand] = useState(false);
+
   const fetchProperties = async () => {
     setIsLoading(true);
     try {
@@ -84,7 +120,25 @@ const PropertyLists = () => {
 
   useEffect(() => {
     fetchProperties();
+    fetchBrands();
   }, []);
+
+  const fetchBrands = async () => {
+    try {
+      const response = await fetch("http://localhost:4000/brands");
+      const data = await response.json();
+      setAllBrands(data);
+    } catch (err) {
+      console.error("Fetch brands error:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedProperty) {
+      setQuickBrandName(selectedProperty.userEnteredBrand || "");
+      setIsAddingNewBrand(false);
+    }
+  }, [selectedProperty]);
 
   // Filter and Search Logic
   useEffect(() => {
@@ -144,7 +198,11 @@ const PropertyLists = () => {
   };
 
   const handleUpdateStatus = (id: string, status: string) => {
-    // Cast string back to union type safely if logic guarantees it, or change param type
+    if (status === "approved" && !selectedBrandId) {
+      setIsBrandErrorModalOpen(true);
+      return;
+    }
+
     const safeStatus = status as "approved" | "rejected";
     setStatusConfirmation({
       isOpen: true,
@@ -154,24 +212,64 @@ const PropertyLists = () => {
     });
   };
 
-  const confirmStatusUpdate = async () => {
-    if (!statusConfirmation.propertyId || !statusConfirmation.status) return;
+  const handleQuickAddBrand = async () => {
+    if (!quickBrandName.trim()) {
+      toast.error("กรุณาระบุชื่อแบรนด์");
+      return;
+    }
+    
+    setIsCreatingBrand(true);
+    try {
+      const newBrand = await brandsService.createBrand({
+        name: quickBrandName.trim(),
+        category: selectedProperty?.category || "",
+        isActive: true
+      });
+      
+      await fetchBrands();
+      setSelectedBrandId(String(newBrand.id));
+      setIsAddingNewBrand(false);
+      
+      toast.success("เพิ่มแบรนด์ใหม่เรียบร้อยแล้ว", {
+          icon: '✅',
+          style: { borderRadius: '10px', background: '#333', color: '#fff' },
+      });
+    } catch (error) {
+      console.error("Quick add brand error:", error);
+      toast.error("ไม่สามารถเพิ่มแบรนด์ได้");
+    } finally {
+      setIsCreatingBrand(false);
+    }
+  };
+
+  const confirmStatusUpdate = async (overrideStatus?: "approved" | "rejected") => {
+    const finalId = statusConfirmation.propertyId || selectedProperty?.id;
+    const finalStatus = overrideStatus || statusConfirmation.status;
+
+    if (!finalId || !finalStatus) return;
 
     try {
       await adminPropertiesService.updatePropertyStatus(
-        statusConfirmation.propertyId,
-        statusConfirmation.status,
+        finalId,
+        finalStatus,
         statusConfirmation.reason,
+        selectedBrandId // Pass the selected brand
       );
+
+      // Update local state
       setProperties((prev) =>
         prev.map((p) =>
-          p.id === statusConfirmation.propertyId
-            ? { ...p, status: statusConfirmation.status! }
+          p.id === finalId
+            ? { ...p, status: finalStatus!, brandId: selectedBrandId ? Number(selectedBrandId) : p.brandId }
             : p,
         ),
       );
+
+      if (isDetailsModalOpen) setIsDetailsModalOpen(false);
+      toast.success(finalStatus === "approved" ? "อนุมัติประกาศเรียบร้อยแล้ว" : "ปฏิเสธประกาศเรียบร้อยแล้ว");
     } catch (error) {
       console.error("Error updating status:", error);
+      toast.error("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
     } finally {
       setStatusConfirmation({
         isOpen: false,
@@ -231,11 +329,10 @@ const PropertyLists = () => {
                   setFilterStatus("all");
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "all"
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === "all"
                     ? "bg-[#27272A] text-white shadow-sm"
                     : "text-neutral-400 hover:text-white"
-                }`}
+                  }`}
               >
                 รายการอสังหา
               </button>
@@ -245,19 +342,18 @@ const PropertyLists = () => {
                   setFilterStatus("pending");
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  activeTab === "pending"
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === "pending"
                     ? "bg-[#27272A] text-white shadow-sm"
                     : "text-neutral-400 hover:text-white"
-                }`}
+                  }`}
               >
                 รายการที่รอตรวจสอบ
                 {properties.filter((p) => p.status === "pending").length >
                   0 && (
-                  <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-                    {properties.filter((p) => p.status === "pending").length}
-                  </span>
-                )}
+                    <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                      {properties.filter((p) => p.status === "pending").length}
+                    </span>
+                  )}
               </button>
             </div>
 
@@ -280,11 +376,10 @@ const PropertyLists = () => {
             <div className="relative">
               <button
                 onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-sm font-medium ${
-                  filterDropdownOpen
+                className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-sm font-medium ${filterDropdownOpen
                     ? "bg-[#1A1A1E] border-indigo-500/50 text-white"
                     : "bg-[#1A1A1E] border-[#27272A] text-neutral-400 hover:text-white"
-                }`}
+                  }`}
               >
                 <Filter size={16} />
                 <span className="hidden md:inline">
@@ -293,9 +388,8 @@ const PropertyLists = () => {
                 </span>
                 <ChevronDown
                   size={14}
-                  className={`transition-transform duration-200 ${
-                    filterDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`transition-transform duration-200 ${filterDropdownOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -319,18 +413,16 @@ const PropertyLists = () => {
                             else if (option.name === "pending")
                               setActiveTab("pending");
                           }}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                            filterStatus === option.name
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${filterStatus === option.name
                               ? "bg-indigo-600/10 text-indigo-400 font-medium"
                               : "text-neutral-400 hover:bg-[#27272A] hover:text-white"
-                          }`}
+                            }`}
                         >
                           <div
-                            className={`w-2 h-2 rounded-full ${
-                              filterStatus === option.name
+                            className={`w-2 h-2 rounded-full ${filterStatus === option.name
                                 ? "bg-indigo-500"
                                 : "bg-neutral-600"
-                            }`}
+                              }`}
                           />
                           {option.label}
                         </button>
@@ -487,6 +579,17 @@ const PropertyLists = () => {
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          className="p-2 rounded-lg text-neutral-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                          onClick={() => {
+                            setSelectedProperty(property);
+                            setSelectedBrandId(property.brandId ? String(property.brandId) : "");
+                            setIsDetailsModalOpen(true);
+                          }}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
                         {property.status === "pending" && (
                           <>
                             <button
@@ -544,11 +647,10 @@ const PropertyLists = () => {
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
-                    currentPage === i + 1
+                  className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${currentPage === i + 1
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
                       : "text-neutral-500 hover:bg-[#27272A] hover:text-white"
-                  }`}
+                    }`}
                 >
                   {i + 1}
                 </button>
@@ -639,11 +741,10 @@ const PropertyLists = () => {
             >
               <div className="flex flex-col items-center text-center gap-4">
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    statusConfirmation.status === "approved"
+                  className={`w-12 h-12 rounded-full flex items-center justify-center ${statusConfirmation.status === "approved"
                       ? "bg-green-500/10 text-green-500"
                       : "bg-red-500/10 text-red-500"
-                  }`}
+                    }`}
                 >
                   {statusConfirmation.status === "approved" ? (
                     <Check size={24} />
@@ -696,17 +797,318 @@ const PropertyLists = () => {
                       statusConfirmation.status === "rejected" &&
                       !statusConfirmation.reason.trim()
                     }
-                    className={`flex-1 px-4 py-2.5 rounded-xl text-white transition-colors text-sm font-medium shadow-lg ${
-                      statusConfirmation.status === "approved"
+                    className={`flex-1 px-4 py-2.5 rounded-xl text-white transition-colors text-sm font-medium shadow-lg ${statusConfirmation.status === "approved"
                         ? "bg-green-500 hover:bg-green-600 shadow-green-500/20"
                         : "bg-red-500 hover:bg-red-600 shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    }`}
+                      }`}
                   >
                     {statusConfirmation.status === "approved"
                       ? "อนุมัติ"
                       : "ปฏิเสธ"}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Details Modal */}
+        {isDetailsModalOpen && selectedProperty && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailsModalOpen(false)}
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-4xl max-h-[90vh] bg-[#111114] border border-[#27272A] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-[#27272A] flex items-center justify-between bg-[#151518]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                    <Building2 size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white leading-tight">{selectedProperty.title}</h3>
+                    <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
+                      <Hash size={12} /> ID: {selectedProperty.id} • <Calendar size={12} /> {new Date(selectedProperty.createdAt).toLocaleDateString("th-TH")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDetailsModalOpen(false)}
+                  className="p-2 hover:bg-[#27272A] rounded-xl text-neutral-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  {/* Left: Photos & Description */}
+                  <div className="space-y-8">
+                    <div className="rounded-2xl overflow-hidden aspect-[4/3] bg-neutral-900 border border-[#27272A] relative group">
+                      <img
+                        src={selectedProperty.image || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcd5J_YDIyLfeZCHcsBpcuN8irwbIJ_VDl0Q&s"}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-4 left-4">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-xl ${getStatusBadgeColor(selectedProperty.status)}`}>
+                          {formatStatus(selectedProperty.status)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <FileText size={16} className="text-indigo-400" /> รายละเอียด
+                      </h4>
+                      <p className="text-sm text-neutral-400 leading-relaxed bg-[#1A1A1E] p-4 rounded-2xl border border-white/5">
+                        {selectedProperty.description || "ไม่มีรายละเอียด"}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 space-y-4">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Check size={16} className="text-emerald-400" /> สิ่งอำนวยความสะดวก
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProperty.amenities?.length > 0 ? selectedProperty.amenities.map((a, i) => (
+                          <span key={i} className="px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-lg text-xs text-emerald-400">
+                            {a}
+                          </span>
+                        )) : <span className="text-xs text-neutral-600">ไม่มีสิ่งอำนวยความสะดวก</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Info & Brand Assignment */}
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-[#1A1A1E] rounded-2xl border border-white/5 flex items-center gap-4">
+                        <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><DollarSign size={20} /></div>
+                        <div>
+                          <p className="text-[10px] text-neutral-500 uppercase font-bold">ราคาขาย</p>
+                          <p className="text-lg font-bold text-white">฿{selectedProperty.price?.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-[#1A1A1E] rounded-2xl border border-white/5 flex items-center gap-4">
+                        <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><Maximize2 size={20} /></div>
+                        <div>
+                          <p className="text-[10px] text-neutral-500 uppercase font-bold">พื้นที่</p>
+                          <p className="text-lg font-bold text-white">{selectedProperty.usableArea || "N/A"} ตร.ม.</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-[#1A1A1E] rounded-2xl border border-white/5 flex items-center gap-4">
+                        <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><Bed size={20} /></div>
+                        <div>
+                          <p className="text-[10px] text-neutral-500 uppercase font-bold">ห้องนอน</p>
+                          <p className="text-lg font-bold text-white">{selectedProperty.bedrooms || 0} ห้อง</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-[#1A1A1E] rounded-2xl border border-white/5 flex items-center gap-4">
+                        <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><Bath size={20} /></div>
+                        <div>
+                          <p className="text-[10px] text-neutral-500 uppercase font-bold">ห้องน้ำ</p>
+                          <p className="text-lg font-bold text-white">{selectedProperty.bathrooms || 0} ห้อง</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-500/20 text-amber-500 rounded-xl">
+                          <Tag size={20} />
+                        </div>
+                        <h4 className="text-base font-bold text-white">การจับคู่โครงการ (Brand Management)</h4>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-neutral-500 block mb-2 px-1">ประเภทอสังหาฯ:</label>
+                            <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl text-indigo-400 font-bold text-sm">
+                              {CATEGORY_LABELS[selectedProperty.category as keyof typeof CATEGORY_LABELS] || selectedProperty.category || "ไม่ระบุ"}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-neutral-500 block mb-2 px-1">ที่ลูกค้ากรอก (Free Text):</label>
+                            <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-amber-400 font-bold text-sm">
+                              {selectedProperty.userEnteredBrand || "ไม่ระบุ"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <label className="text-xs font-bold text-neutral-500 block mb-2 px-1">เลือกโครงการจริงจากระบบ (Required for approval):</label>
+                          <div className="flex gap-2">
+                             {!isAddingNewBrand ? (
+                                <div className="relative flex-1">
+                                   <select
+                                     value={selectedBrandId}
+                                     onChange={(e) => setSelectedBrandId(e.target.value)}
+                                     className="w-full h-12 bg-[#1A1A1E] border border-[#27272A] rounded-xl px-4 text-white appearance-none outline-none focus:border-indigo-500/50 transition-all cursor-pointer"
+                                   >
+                                     <option value="">-- กรุณาเลือกโครงการ --</option>
+                                     {allBrands
+                                       .filter(b => !selectedProperty.category || b.category === selectedProperty.category)
+                                       .map(b => (
+                                         <option key={b.id} value={b.id}>{b.name}</option>
+                                       ))
+                                     }
+                                   </select>
+                                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" size={16} />
+                                </div>
+                             ) : (
+                                <div className="relative flex-1">
+                                   <input
+                                      type="text"
+                                      autoFocus
+                                      value={quickBrandName}
+                                      onChange={(e) => setQuickBrandName(e.target.value)}
+                                      placeholder="ชื่อแบรนด์ใหม่..."
+                                      className="w-full h-12 bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 text-white outline-none focus:border-indigo-500 transition-all"
+                                   />
+                                </div>
+                             )}
+
+                             <div className="flex gap-2">
+                                {isAddingNewBrand && (
+                                   <button
+                                     onClick={() => setIsAddingNewBrand(false)}
+                                     className="h-12 w-12 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-neutral-400 rounded-xl transition-all border border-[#27272A]"
+                                   >
+                                      <X size={20} />
+                                   </button>
+                                )}
+                                <button
+                                  onClick={isAddingNewBrand ? handleQuickAddBrand : () => setIsAddingNewBrand(true)}
+                                  disabled={isCreatingBrand}
+                                  title={isAddingNewBrand ? "ยืนยันการเพิ่มแบรนด์" : "เพิ่มแบรนด์ใหม่"}
+                                  className={`h-12 ${isAddingNewBrand ? 'px-4' : 'w-12'} flex items-center justify-center ${isAddingNewBrand ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-xl transition-all shadow-lg disabled:opacity-50 gap-2`}
+                                >
+                                   {isCreatingBrand ? (
+                                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                   ) : (
+                                      <>
+                                         {isAddingNewBrand ? (
+                                            <>
+                                               <Check size={20} strokeWidth={2.5} />
+                                               <span className="text-xs font-bold whitespace-nowrap">เพิ่มแบรนด์</span>
+                                            </>
+                                         ) : (
+                                            <Plus size={20} strokeWidth={2.5} />
+                                         )}
+                                      </>
+                                   )}
+                                </button>
+                             </div>
+                          </div>
+
+                          {!selectedBrandId && !isAddingNewBrand && (
+                            <p className="text-[10px] text-red-400 mt-2 flex items-center gap-1 px-1">
+                              <XCircle size={10} /> * หากยังไม่เลือกโครงการ (Brand) จะไม่สามารถอนุมัติประกาศได้
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-[#151518] border border-[#27272A] rounded-3xl space-y-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs overflow-hidden">
+                          {selectedProperty.Owner?.image ? <img src={selectedProperty.Owner.image} className="w-full h-full object-cover" /> : selectedProperty.Owner?.name?.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{selectedProperty.Owner?.name}</p>
+                          <p className="text-[10px] text-neutral-500">{selectedProperty.Owner?.email || "No email"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-[#27272A] bg-[#151518] flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setIsDetailsModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl border border-[#27272A] text-neutral-400 hover:text-white hover:bg-[#27272A] transition-all text-sm font-medium"
+                >
+                  ยกเลิก
+                </button>
+
+                {selectedProperty.status === 'pending' ? (
+                  <>
+                    <button
+                      onClick={() => handleUpdateStatus(selectedProperty.id, "rejected")}
+                      className="px-6 py-2.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-all text-sm font-medium"
+                    >
+                      ปฏิเสธ
+                    </button>
+                    <button
+                      onClick={() => confirmStatusUpdate("approved")}
+                      disabled={!selectedBrandId}
+                      className="px-10 py-2.5 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 transition-all text-sm shadow-lg shadow-green-500/20 disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
+                    >
+                      อนุมัติประกาศ
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-neutral-500 text-sm italic mr-4">
+                    ประกาศนี้ {formatStatus(selectedProperty.status)} แล้ว
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Brand Validation Error Modal */}
+      <AnimatePresence>
+        {isBrandErrorModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsBrandErrorModalOpen(false)}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-sm p-8 bg-[#1A1A1E] border border-amber-500/20 rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Decorative background glow */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+              <div className="relative flex flex-col items-center text-center gap-6">
+                <div className="w-20 h-20 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                  <Tag size={40} strokeWidth={1.5} />
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-white tracking-tight">จำเป็นต้องเลือกโครงการ</h3>
+                  <p className="text-neutral-400 text-sm leading-relaxed">
+                    กรุณาเลือก <span className="text-amber-500 font-bold">โครงการ (Brand)</span> จริงจากระบบก่อนทำการอนุมัติประกาศนี้ เพื่อรักษาความถูกต้องของฐานข้อมูลครับ
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsBrandErrorModalOpen(false)}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-2xl transition-all shadow-[0_10px_20px_rgba(245,158,11,0.2)] active:scale-95"
+                >
+                  รับทราบ
+                </button>
               </div>
             </motion.div>
           </>

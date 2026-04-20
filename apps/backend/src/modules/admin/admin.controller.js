@@ -1,7 +1,7 @@
 import { db } from '../../database/schema/db.js'
 import fs from 'fs'
 import path from 'path'
-import { users, roles, properties, propertyImages, notifications, userSubscriptions, membershipPlans, favorites, conversations } from '../../database/schema/index.js'
+import { users, roles, properties, propertyImages, notifications, userSubscriptions, membershipPlans, favorites, conversations, brands } from '../../database/schema/index.js'
 import { eq, sql, count } from 'drizzle-orm'
 
 // GET /admin/users
@@ -256,12 +256,26 @@ export const getAdminProperties = async (req, res) => {
                 name: properties.name,
                 description: properties.description,
                 startingPrice: properties.startingPrice,
-                rentPrice: properties.rentPrice,
                 province: properties.province,
                 district: properties.district,
                 status: properties.status,
+                category: properties.category,
+                userEnteredBrand: properties.userEnteredBrand,
+                brandId: properties.brandId,
                 rejectionReason: properties.rejectionReason,
-
+                listingType: properties.listingType,
+                rentPrice: properties.rentPrice,
+                projectArea: properties.projectArea,
+                landArea: properties.landArea,
+                usableArea: properties.usableArea,
+                totalUnits: properties.totalUnits,
+                parkingSpaces: properties.parkingSpaces,
+                bedrooms: properties.bedrooms,
+                bathrooms: properties.bathrooms,
+                floor: properties.floor,
+                building: properties.building,
+                commonFee: properties.commonFee,
+                amenities: properties.amenities,
                 createdAt: properties.createdAt,
                 userId: properties.userId,
                 ownerName: properties.ownerName,
@@ -275,6 +289,7 @@ export const getAdminProperties = async (req, res) => {
             })
             .from(properties)
             .leftJoin(users, eq(properties.userId, users.id))
+            .leftJoin(brands, eq(properties.brandId, brands.id))
             .leftJoin(
                 propertyImages,
                 sql`${propertyImages.propertyId} = ${properties.id} AND ${propertyImages.isMain} = true`
@@ -290,10 +305,19 @@ export const getAdminProperties = async (req, res) => {
                 ? `http://localhost:4000/${row.imagePath}`
                 : null,
             status: row.status,
+            category: row.category,
+            userEnteredBrand: row.userEnteredBrand,
+            brandId: row.brandId,
             rejectionReason: row.rejectionReason ?? null,
             location: [row.district, row.province].filter(Boolean).join(', ') || null,
             createdAt: row.createdAt,
             userId: String(row.userId),
+            listingType: row.listingType,
+            rentPrice: row.rentPrice ? parseFloat(row.rentPrice) : null,
+            bedrooms: row.bedrooms,
+            bathrooms: row.bathrooms,
+            usableArea: row.usableArea,
+            amenities: row.amenities || [],
             Owner: {
                 name: row.userFirstName
                     ? `${row.userFirstName} ${row.userLastName || ''}`.trim()
@@ -316,13 +340,14 @@ export const getAdminProperties = async (req, res) => {
 export const updatePropertyStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, reason } = req.body;
+        const { status, reason, brandId } = req.body;
 
         // 1. Update status and rejection reason
         const [updated] = await db.update(properties)
             .set({ 
                 status: status.toLowerCase(), 
                 rejectionReason: reason || null,
+                brandId: brandId ? parseInt(brandId) : undefined,
                 updatedAt: new Date() 
             })
             .where(eq(properties.id, parseInt(id)))
@@ -375,6 +400,7 @@ export const getLogs = async (req, res) => {
             let entityType = 'property'
 
             if (log.type === 'PROPERTY_PENDING') action = 'create';
+            if (log.type === 'PROPERTY_MODIFIED') action = 'update';
             if (log.type === 'PROPERTY_APPROVED') action = 'approve';
             if (log.type === 'PROPERTY_REJECTED') action = 'reject';
             if (log.type === 'USER_REGISTERED') { action = 'create'; entityType = 'user'; }

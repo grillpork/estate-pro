@@ -22,6 +22,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import MapPicker from "./MapPicker";
 
 // --- Types ---
@@ -49,24 +50,24 @@ interface PropertyFormData {
   floor: number | string;
   building: string;
   commonFee: string;
+  userEnteredBrand: string;
+  ownerName: string;
+  ownerPhone: string;
+  availableDate: string;
   latitude: string;
   longitude: string;
   amenities: string[];
   startingPrice: string;
   rentPrice?: string;
   estimatedInstallment?: string;
-  discount?: string;
-  discountActive?: boolean;
-  discountType?: "BAHT" | "PERCENT";
-  rentDiscount?: string;
-  rentDiscountActive?: boolean;
-  rentDiscountType?: "BAHT" | "PERCENT";
-  saleNetTotal?: string;
-  rentNetTotal?: string;
-  ownerName?: string;
-  ownerPhone?: string;
-  availableDate?: string;
-  customBrandName?: string;
+  discountActive: boolean;
+  discountType: "BAHT" | "PERCENT";
+  discount: string;
+  saleNetPrice: string;
+  rentDiscountActive: boolean;
+  rentDiscountType: "BAHT" | "PERCENT";
+  rentDiscount: string;
+  rentNetPrice: string;
 }
 
 interface Brand {
@@ -283,6 +284,14 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
 
   const saleNetPrice = calcNetPrice(watchStartingPrice, watchDiscountActive, watchDiscount, watchDiscountType);
   const rentNetPrice = calcNetPrice(watchRentPrice, watchRentDiscountActive, watchRentDiscount, watchRentDiscountType);
+ 
+  // Filter brand options based on category
+  const brandOptions = [
+    ...brands
+      .filter(b => b.category === watch("category"))
+      .map(b => ({ value: String(b.id), label: b.name })),
+    { value: "OTHER", label: "อื่นๆ (ระบุเอง)" }
+  ];
 
   // Format number with commas
   const formatNumber = (num: number | null) => {
@@ -431,29 +440,12 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
 
       let finalBrandId = data.brandId && data.brandId !== "custom" ? Number(data.brandId) : undefined;
 
-      // Handle inline brand creation
-      if (data.brandId === "custom" && data.customBrandName) {
-        try {
-          const brandPayload = {
-            name: data.customBrandName,
-            category: data.category,
-            isActive: true,
-          };
-          const newBrand = await brandsService.createBrand(brandPayload);
-          finalBrandId = newBrand.id;
-        } catch (err) {
-          console.error("Failed to create brand inline:", err);
-          alert("สร้างแบรนด์ใหม่ไม่สำเร็จ กรุณาลองอีกครั้ง");
-          setIsConfirming(false);
-          return;
-        }
-      }
-
       const payload = {
         name: data.name,
         description: data.description,
         listingType: data.listingType,
         brandId: finalBrandId,
+        userEnteredBrand: data.userEnteredBrand,
         startingPrice: data.startingPrice,
         rentPrice: data.rentPrice || undefined,
         category: data.category,
@@ -522,6 +514,12 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
       }
 
       if (onSubmit) await onSubmit(result);
+      
+      const successMsg = initialData?.id 
+        ? "แก้ไขข้อมูลสำเร็จ! รายการของคุณอยู่ระหว่างการตรวจสอบใหม่โดยแอดมิน"
+        : "ลงประกาศสำเร็จ! รายการของคุณอยู่ระหว่างการตรวจสอบโดยแอดมิน";
+        
+      toast.success(successMsg, { duration: 5000 });
       router.push("/properties");
     } catch (error) {
       console.error("Failed to save property:", error);
@@ -827,47 +825,40 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
                         onChange={(val) => {
                           setValue("category", val as any);
                           setValue("brandId", "");
+                          setValue("userEnteredBrand", "");
                         }}
                         placeholder="เลือกประเภท"
                       />
                     </div>
                     <div>
                       <label className="text-[13px] font-bold text-white/60 mb-2 block">
-                        โครงการ (Brand)
+                        ระบุโครงการ (Brand) <span className="text-red-500">*</span>
                       </label>
                       <DarkSelect
-                        options={
-                          brandsLoading
-                            ? [{ value: "", label: "กำลังโหลดโครงการ..." }]
-                            : [
-                              { value: "", label: "ไม่ระบุโครงการ (Not Specified)" },
-                              { value: "custom", label: "+ เพิ่มโครงการใหม่เอง" },
-                              ...brands
-                                .filter(b => b.category === watch("category"))
-                                .map(b => ({
-                                  value: String(b.id),
-                                  label: `${b.name} (${CATEGORIES.find(c => c.value === b.category)?.label || b.category})`,
-                                })),
-                            ]
-                        }
+                        options={brandOptions}
                         value={String(watch("brandId") || "")}
                         onChange={(val) => {
                           setValue("brandId", val);
-                          if (val !== "custom") setValue("customBrandName", "");
+                          if (val !== "OTHER") {
+                             const brand = brands.find(b => String(b.id) === val);
+                             setValue("userEnteredBrand", brand ? brand.name : "");
+                          } else {
+                             setValue("userEnteredBrand", "");
+                          }
                         }}
-                        placeholder={brandsLoading ? "กำลังโหลดโครงการ..." : "ไม่ระบุโครงการ"}
+                        placeholder="เลือกโครงการ"
                       />
-                      {watch("brandId") === "custom" && (
-                        <div className="mt-3">
-                          <input
-                            {...register("customBrandName", { required: watch("brandId") === "custom" ? "กรุณากรอกชื่อโครงการ" : false })}
-                            placeholder="ระบุชื่อโครงการใหม่..."
-                            className="w-full p-3.5 bg-white/10 text-sm rounded-xl border border-amber-500/30 outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/20 focus:ring-1 focus:ring-amber-500"
-                          />
-                          {errors.customBrandName && <p className="text-red-500 text-xs mt-1">{errors.customBrandName.message}</p>}
-                        </div>
+                      {watch("brandId") === "OTHER" && (
+                         <div className="mt-4">
+                           <input 
+                             type="text" 
+                             {...register("userEnteredBrand", { required: watch("brandId") === "OTHER" ? "กรุณาระบุชื่อโครงการ" : false })}
+                             placeholder="กรอกชื่อโครงการด้วยตนเอง..."
+                             className="w-full p-3.5 bg-white/5 border border-amber-500/30 rounded-xl outline-none text-sm transition text-white/80 focus:bg-white/10 focus:ring-1 focus:ring-amber-500"
+                           />
+                           {errors.userEnteredBrand && <p className="text-red-500 text-xs mt-1">{errors.userEnteredBrand.message}</p>}
+                         </div>
                       )}
-                      {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId.message}</p>}
                     </div>
                   </div>
                 </div>

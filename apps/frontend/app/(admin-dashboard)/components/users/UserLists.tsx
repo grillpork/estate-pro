@@ -311,9 +311,6 @@ const UserLists = () => {
                   Verified
                 </th>
                 <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-neutral-500 text-center">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-neutral-500 text-center">
                   Joined
                 </th>
                 <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-neutral-500 text-right">
@@ -504,27 +501,6 @@ const UserLists = () => {
                             <span className="inline-flex items-center w-2 h-2 rounded-full bg-red-500"></span>
                             <span className="text-xs text-neutral-400 capitalize">
                               Unverified
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {user.status === "active" ? (
-                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
-                            <Check size={12} className="text-green-500" />
-                            <span className="text-[10px] font-medium text-green-500 uppercase">
-                              ใช้งาน
-                            </span>
-                          </div>
-                        ) : (
-                          <>
-                            <span className="inline-flex items-center w-2 h-2 rounded-full bg-neutral-500"></span>
-                            <span className="text-xs text-neutral-400 capitalize">
-                              {user.status || "ระงับการใช้งาน"}
                             </span>
                           </>
                         )}
