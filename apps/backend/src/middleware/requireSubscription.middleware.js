@@ -42,16 +42,35 @@ export const requireSubscription = async (req, res, next) => {
         // อนุญาตให้ลง 1 รายการ แล้วเตือนให้สมัครแพลนสำหรับการลงประกาศเพิ่มเติม
         if (currentListings >= 1) {
             return res.status(403).json({
+
                 message: 'คุณลงประกาศครบจำนวนฟรี (1 รายการ) แล้ว กรุณาสมัครแพลนเพื่อลงประกาศเพิ่มเติม',
                 code: 'FREE_LISTING_LIMIT_REACHED',
+
+                message: 'แพลนของคุณหมดอายุแล้ว กรุณาต่ออายุหรือสมัครแพลนใหม่',
+                code: 'SUBSCRIPTION_EXPIRED',
+            })
+        }
+
+        // เช็คว่าเกิน maxListings หรือยัง
+        if (maxListings !== null && currentListings >= maxListings) {
+            return res.status(403).json({
+                message: `คุณลงประกาศครบจำนวนสูงสุดของแพลน ${plan.name} แล้ว (${maxListings} รายการ)`,
+                code: 'MAX_LISTINGS_REACHED',
+
                 currentListings,
                 maxListings: 1,
             })
         }
 
+
         // อนุญาตให้ผ่าน แต่เตือน user ว่านี่คือการลงประกาศฟรี
         req.subscription = null
         req.plan = null
+
+        // แนบข้อมูล subscription ไว้ใน req เพื่อใช้ต่อ
+        req.subscription = subscription
+        req.plan = plan
+
         req.listingsCount = currentListings
         req.isFreeListingWarning = true
 

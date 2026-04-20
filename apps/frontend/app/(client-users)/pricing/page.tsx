@@ -18,8 +18,14 @@ const PricingPage = () => {
     const fetchPlans = async () => {
       try {
         const allPlans = await adminMembershipPlansService.getAllPlans();
-        // Show only active plans
-        setPlans(allPlans.filter(p => p.isActive));
+        // Show only active plans, with the popular plan (index 1) first
+        const activePlans = allPlans.filter(p => p.isActive);
+        if (activePlans.length > 1) {
+          const [first, second, ...rest] = activePlans;
+          setPlans([second, first, ...rest]);
+        } else {
+          setPlans(activePlans);
+        }
       } catch (error) {
         console.error("Failed to fetch plans", error);
       } finally {
@@ -129,7 +135,7 @@ const PricingPage = () => {
             ))
           ) : (
             plans.map((plan, i) => {
-              const isPopular = i === 1 || plan.name.toLowerCase().includes("pro");
+              const isPopular = i === 0;
               const price = billingCycle === "monthly" ? plan.priceMonthly : plan.priceYearly;
               const period = billingCycle === "monthly" ? "/mo" : "/yr";
 
@@ -170,10 +176,10 @@ const PricingPage = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${plan.canChat ? "bg-amber-500/20 text-amber-500" : "bg-white/5 text-white/30"}`}>
-                        {plan.canChat ? <Check size={14} strokeWidth={3} /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Check size={14} strokeWidth={3} />
                       </div>
-                      <span className={`text-sm ${plan.canChat ? "" : "text-white/40"}`}>
+                      <span className="text-sm">
                         Direct messaging with clients
                       </span>
                     </div>

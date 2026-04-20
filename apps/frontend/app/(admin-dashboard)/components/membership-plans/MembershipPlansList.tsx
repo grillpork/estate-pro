@@ -28,7 +28,6 @@ const emptyForm: CreateMembershipPlanPayload = {
   priceMonthly: "0",
   priceYearly: "0",
   maxListings: 1,
-  canChat: false,
   canViewOwnerContact: false,
   isActive: true,
 };
@@ -82,7 +81,6 @@ const MembershipPlansList = () => {
       priceMonthly: plan.priceMonthly,
       priceYearly: plan.priceYearly,
       maxListings: plan.maxListings,
-      canChat: plan.canChat,
       canViewOwnerContact: plan.canViewOwnerContact,
       isActive: plan.isActive,
     });
@@ -187,11 +185,10 @@ const MembershipPlansList = () => {
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`relative bg-[#1A1A1E] border rounded-2xl p-6 flex flex-col gap-4 group transition-all ${
-                  plan.isActive
-                    ? "border-[#27272A] hover:border-indigo-500/30"
-                    : "border-[#27272A] opacity-60"
-                }`}
+                className={`relative bg-[#1A1A1E] border rounded-2xl p-6 flex flex-col gap-4 group transition-all ${plan.isActive
+                  ? "border-[#27272A] hover:border-indigo-500/30"
+                  : "border-[#27272A] opacity-60"
+                  }`}
               >
                 {/* Top Row */}
                 <div className="flex items-start justify-between gap-2">
@@ -204,11 +201,10 @@ const MembershipPlansList = () => {
                         {plan.name}
                       </h3>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${
-                          plan.isActive
-                            ? "bg-green-500/10 text-green-400"
-                            : "bg-neutral-500/10 text-neutral-500"
-                        }`}
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${plan.isActive
+                          ? "bg-green-500/10 text-green-400"
+                          : "bg-neutral-500/10 text-neutral-500"
+                          }`}
                       >
                         {plan.isActive ? "Active" : "Inactive"}
                       </span>
@@ -285,21 +281,10 @@ const MembershipPlansList = () => {
                     {plan.maxListings} Listings
                   </span>
                   <span
-                    className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg ${
-                      plan.canChat
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-[#0F0F12] text-neutral-600 line-through"
-                    }`}
-                  >
-                    <MessageCircle size={12} />
-                    Chat
-                  </span>
-                  <span
-                    className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg ${
-                      plan.canViewOwnerContact
-                        ? "bg-sky-500/10 text-sky-400"
-                        : "bg-[#0F0F12] text-neutral-600 line-through"
-                    }`}
+                    className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg ${plan.canViewOwnerContact
+                      ? "bg-sky-500/10 text-sky-400"
+                      : "bg-[#0F0F12] text-neutral-600 line-through"
+                      }`}
                   >
                     <Eye size={12} />
                     Owner Contact
@@ -368,7 +353,7 @@ const MembershipPlansList = () => {
                     Description
                   </label>
                   <textarea
-                    value={form.description}
+                    value={form.description ?? ""}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     placeholder="Describe what this plan offers..."
                     rows={3}
@@ -424,7 +409,6 @@ const MembershipPlansList = () => {
                     Permissions
                   </label>
                   {[
-                    { key: "canChat", label: "Can Chat", icon: <MessageCircle size={14} /> },
                     {
                       key: "canViewOwnerContact",
                       label: "Can View Owner Contact",
@@ -441,11 +425,10 @@ const MembershipPlansList = () => {
                       className="flex items-center gap-3 px-4 py-3 bg-[#0F0F12] rounded-xl cursor-pointer hover:bg-[#151518] transition-colors group"
                     >
                       <div
-                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                          form[key as keyof typeof form]
-                            ? "bg-indigo-600 border-indigo-600 text-white"
-                            : "border-[#3F3F46] text-transparent"
-                        }`}
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${form[key as keyof typeof form]
+                          ? "bg-indigo-600 border-indigo-600 text-white"
+                          : "border-[#3F3F46] text-transparent"
+                          }`}
                       >
                         {icon}
                       </div>

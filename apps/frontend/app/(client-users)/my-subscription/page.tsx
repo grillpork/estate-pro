@@ -400,8 +400,8 @@ function ActiveSubscriptionCard({
                             <FeatureItem
                                 icon={MessageSquare}
                                 label="แชทกับลูกค้า"
-                                value={plan.canChat ? "เปิดใช้งาน" : "ไม่สามารถใช้ได้"}
-                                active={plan.canChat}
+                                value="เปิดใช้งาน"
+                                active
                             />
                             <FeatureItem
                                 icon={Eye}
