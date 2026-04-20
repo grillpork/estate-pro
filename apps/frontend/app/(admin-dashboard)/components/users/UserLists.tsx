@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
-  MessageCircle,
   Filter,
   Shield,
   Mail,
@@ -547,15 +546,6 @@ const UserLists = () => {
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-[#27272A] transition-colors"
-                          onClick={() =>
-                            router.push(`/chat-db?userId=${user.id}`)
-                          }
-                          title="Chat"
-                        >
-                          <MessageCircle size={16} />
-                        </button>
                         <button
                           className="p-2 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                           onClick={() => handleDeleteUser(user.id)}

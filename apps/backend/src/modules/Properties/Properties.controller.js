@@ -355,10 +355,24 @@ export const updateProperty = async (req, res) => {
             .update(properties)
             .set({
                 ...updateData,
+                status: (req.user.role === 'admin' || req.user.role === 'superadmin') 
+                    ? (updateData.status || existing.status) 
+                    : 'pending',
                 updatedAt: new Date()
             })
             .where(eq(properties.id, Number(id)))
             .returning()
+
+        // 3. Notify Admin about the update (only if status reset to pending)
+        if (updated.status === 'pending' && existing.status !== 'pending') {
+            await db.insert(notifications).values({
+                userId: null,
+                title: 'Property Modified',
+                message: `The property "${updated.name}" has been modified by the owner and requires re-approval.`,
+                type: 'PROPERTY_PENDING',
+                status: 'unread'
+            });
+        }
 
         // Fetch again with joins for consistent output
         const property = await getPropertyByIdWithJoins(updated.id)
@@ -631,6 +645,22 @@ export const updatePropertyImage = async (req, res) => {
                 await db.update(propertyImages).set({ isMain: false }).where(eq(propertyImages.propertyId, Number(id)));
                 await db.update(propertyImages).set({ isMain: true }).where(eq(propertyImages.id, firstImage.id));
             }
+        }
+
+        // Reset status to pending if not admin (since images have changed)
+        if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+            await db.update(properties)
+                .set({ status: 'pending', updatedAt: new Date() })
+                .where(eq(properties.id, Number(id)));
+            
+            // Notify Admin
+            await db.insert(notifications).values({
+                userId: null,
+                title: 'Property Images Updated',
+                message: `The images for "${existingProperty?.name || 'a property'}" have been updated by the owner and require re-approval.`,
+                type: 'PROPERTY_PENDING',
+                status: 'unread'
+            });
         }
 
         // Fetch again with joins for consistent output

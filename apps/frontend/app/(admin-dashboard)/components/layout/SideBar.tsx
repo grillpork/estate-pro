@@ -7,7 +7,6 @@ import {
   Home,
   Settings,
   User,
-  Bell,
   Search,
   Sparkles,
   LifeBuoy,
@@ -17,9 +16,9 @@ import {
   ArrowLeftToLine,
   Crown,
   CreditCard,
+  Tag,
 } from "lucide-react";
 import UserBox from "@/components/UserBox";
-import { getAllNotifications } from "@/services/admin/notification";
 import { useSession } from "@/lib/auth-client";
 
 import { useSidebar } from "../context/SidebarContext";
@@ -34,31 +33,8 @@ type NavItem = {
 
 const SideBar = () => {
   const pathname = usePathname();
-  const [unreadCount, setUnreadCount] = useState(0);
   const { isCollapsed } = useSidebar();
   const session = useSession();
-
-  // Fetch notification count
-  useEffect(() => {
-    const fetchNotificationCount = async () => {
-      try {
-        const notifications = await getAllNotifications();
-        if (Array.isArray(notifications)) {
-          const unread = notifications.filter(
-            (n: { status: string }) => n.status === "unread",
-          ).length;
-          setUnreadCount(unread);
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      }
-    };
-
-    fetchNotificationCount();
-    // Polling ทุก 30 วินาที
-    const interval = setInterval(fetchNotificationCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   const navItems: NavItem[] = [
     {
@@ -70,13 +46,16 @@ const SideBar = () => {
       href: "/dashboard/users",
       label: "ผู้ใช้",
       icon: <User size={18} />,
-      badge: 2,
-      badgeColor: "bg-orange-500",
     },
     {
       href: "/dashboard/properties",
       label: "ทรัพย์สิน",
       icon: <Building2 size={18} />,
+    },
+    {
+      href: "/dashboard/brands",
+      label: "โครงการ",
+      icon: <Tag size={18} />,
     },
     {
       href: "/dashboard/membership-plans",
@@ -87,13 +66,6 @@ const SideBar = () => {
       href: "/dashboard/user-subscriptions",
       label: "สมัครสมาชิก",
       icon: <CreditCard size={18} />,
-    },
-    {
-      href: "/dashboard/notification",
-      label: "แจ้งเตือน",
-      icon: <Bell size={18} />,
-      badge: unreadCount > 0 ? unreadCount : undefined,
-      badgeColor: "bg-red-500",
     },
     {
       href: "/dashboard/reports",

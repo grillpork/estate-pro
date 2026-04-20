@@ -1,33 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import UserBox from "@/components/UserBox";
-import { Bell, Search, ArrowLeftToLine } from "lucide-react";
-import { getAllNotifications } from "@/services/admin/notification";
+import { Search, ArrowLeftToLine } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
 
 const AdminNavbar = () => {
-  const [unreadCount, setUnreadCount] = useState(0);
   const { isCollapsed, toggleSidebar } = useSidebar();
-
-  useEffect(() => {
-    const fetchNotificationCount = async () => {
-      try {
-        const notifications = await getAllNotifications();
-        if (Array.isArray(notifications)) {
-          const unread = notifications.filter(
-            (n: { status: string }) => n.status === "unread",
-          ).length;
-          setUnreadCount(unread);
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      }
-    };
-
-    fetchNotificationCount();
-    const interval = setInterval(fetchNotificationCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <header className="h-16 border-b border-[#1F1F23] bg-[#0F0F12] flex items-center justify-between px-6 sticky top-0 z-40">
@@ -53,12 +31,6 @@ const AdminNavbar = () => {
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <button className="p-2.5 text-neutral-400 hover:text-white transition-colors rounded-xl hover:bg-[#1A1A1E] relative group">
-          <Bell size={20} className="group-hover:scale-110 transition-transform" />
-          {unreadCount > 0 && (
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0F0F12] animate-pulse"></span>
-          )}
-        </button>
         
         <div className="h-8 w-px bg-[#27272A] mx-1 md:mx-2" />
         

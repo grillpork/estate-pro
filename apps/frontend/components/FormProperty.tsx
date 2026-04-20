@@ -66,6 +66,7 @@ interface PropertyFormData {
   ownerName?: string;
   ownerPhone?: string;
   availableDate?: string;
+  customBrandName?: string;
 }
 
 interface Brand {
@@ -428,11 +429,31 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
         return;
       }
 
+      let finalBrandId = data.brandId && data.brandId !== "custom" ? Number(data.brandId) : undefined;
+
+      // Handle inline brand creation
+      if (data.brandId === "custom" && data.customBrandName) {
+        try {
+          const brandPayload = {
+            name: data.customBrandName,
+            category: data.category,
+            isActive: true,
+          };
+          const newBrand = await brandsService.createBrand(brandPayload);
+          finalBrandId = newBrand.id;
+        } catch (err) {
+          console.error("Failed to create brand inline:", err);
+          alert("สร้างแบรนด์ใหม่ไม่สำเร็จ กรุณาลองอีกครั้ง");
+          setIsConfirming(false);
+          return;
+        }
+      }
+
       const payload = {
         name: data.name,
         description: data.description,
         listingType: data.listingType,
-        brandId: data.brandId ? Number(data.brandId) : undefined,
+        brandId: finalBrandId,
         startingPrice: data.startingPrice,
         rentPrice: data.rentPrice || undefined,
         category: data.category,
@@ -819,7 +840,8 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
                           brandsLoading
                             ? [{ value: "", label: "กำลังโหลดโครงการ..." }]
                             : [
-                              { value: "", label: "ไม่ระบุโครงการ" },
+                              { value: "", label: "ไม่ระบุโครงการ (Not Specified)" },
+                              { value: "custom", label: "+ เพิ่มโครงการใหม่เอง" },
                               ...brands
                                 .filter(b => b.category === watch("category"))
                                 .map(b => ({
@@ -829,9 +851,22 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
                             ]
                         }
                         value={String(watch("brandId") || "")}
-                        onChange={(val) => setValue("brandId", val)}
+                        onChange={(val) => {
+                          setValue("brandId", val);
+                          if (val !== "custom") setValue("customBrandName", "");
+                        }}
                         placeholder={brandsLoading ? "กำลังโหลดโครงการ..." : "ไม่ระบุโครงการ"}
                       />
+                      {watch("brandId") === "custom" && (
+                        <div className="mt-3">
+                          <input
+                            {...register("customBrandName", { required: watch("brandId") === "custom" ? "กรุณากรอกชื่อโครงการ" : false })}
+                            placeholder="ระบุชื่อโครงการใหม่..."
+                            className="w-full p-3.5 bg-white/10 text-sm rounded-xl border border-amber-500/30 outline-none transition placeholder:text-white/30 text-white/80 focus:bg-white/20 focus:ring-1 focus:ring-amber-500"
+                          />
+                          {errors.customBrandName && <p className="text-red-500 text-xs mt-1">{errors.customBrandName.message}</p>}
+                        </div>
+                      )}
                       {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId.message}</p>}
                     </div>
                   </div>
