@@ -13,6 +13,7 @@ export const verifyToken = (req, res, next) => {
         req.user = decoded
         next()
     } catch (err) {
+        console.log('[verifyToken] Token error:', err.message)
         return res.status(403).json({ message: 'Invalid or expired token' })
     }
 }
