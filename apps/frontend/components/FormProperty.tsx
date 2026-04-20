@@ -621,9 +621,9 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6" id="property-form">
 
           {/* การเลือกประเภทหลัก (Property vs Brand) และ ประเภทการประกาศ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 items-stretch">
             {/* เลือกแบบแบรนด์ หรือ อสังหาฯ */}
-            <section className="bg-[#111118] p-6 rounded-2xl border border-white/5 flex flex-col">
+            {/* <section className="bg-[#111118] p-6 rounded-2xl border border-white/5 flex flex-col">
               <label className="flex items-center gap-2 text-[15px] font-bold mb-4 text-white/80">
                 <span className="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block" />
                 คุณต้องการสร้างอะไร? <span className="text-amber-500 ml-1">*</span>
@@ -650,7 +650,7 @@ export default function ListingProperty({ initialData, onSubmit, onCancel, quota
                   แบรนด์
                 </button>
               </div>
-            </section>
+            </section> */}
 
             {/* ประเภทการประกาศ */}
             <section className={`bg-[#111118] p-6 rounded-2xl border border-white/5 transition-opacity ${formMode === "BRAND" ? "opacity-50 pointer-events-none" : ""}`}>

@@ -244,7 +244,7 @@ const PropertyLists = () => {
 
   const confirmStatusUpdate = async (overrideStatus?: "approved" | "rejected") => {
     const finalId = statusConfirmation.propertyId || selectedProperty?.id;
-    const finalStatus = overrideStatus || statusConfirmation.status;
+    const finalStatus = typeof overrideStatus === 'string' ? overrideStatus : statusConfirmation.status;
 
     if (!finalId || !finalStatus) return;
 
@@ -792,7 +792,7 @@ const PropertyLists = () => {
                     ยกเลิก
                   </button>
                   <button
-                    onClick={confirmStatusUpdate}
+                    onClick={() => confirmStatusUpdate()}
                     disabled={
                       statusConfirmation.status === "rejected" &&
                       !statusConfirmation.reason.trim()
