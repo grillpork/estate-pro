@@ -9,7 +9,7 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
-import { brands } from "./brands.js";
+import { brands, brandCategoryEnum } from "./brands.js";
 import { users } from "./user.js";
 
 export const listingTypeEnum = pgEnum("listing_type", [
@@ -72,6 +72,8 @@ export const properties = pgTable("properties", {
   rentNetTotal: numeric("rent_net_total", { precision: 15, scale: 2 }),
   saleNetTotal: numeric("sale_net_total", { precision: 15, scale: 2 }),
   status: propertyStatusEnum("status").notNull().default("pending"),
+  category: brandCategoryEnum("category"),
+  userEnteredBrand: text("user_entered_brand"),
   rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: false }),

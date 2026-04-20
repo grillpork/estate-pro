@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { myPropertiesService, updatePropertyService } from "@/services/client/property";
 import { useRouter } from "next/navigation";
-import { Building2, MapPin, Edit3, Trash2, PlusCircle, Loader2, Home, Search, Filter } from "lucide-react";
+import { Building2, MapPin, Edit3, Trash2, PlusCircle, Loader2, Home, Search, Filter, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
@@ -18,6 +18,8 @@ type Property = {
   mainImage: string | null;
   listingType: string;
   isActive: boolean;
+  status: string;
+  reason?: string;
 };
 
 export default function MyPropertiesPage() {
@@ -126,14 +128,23 @@ export default function MyPropertiesPage() {
                     <div className="bg-[#0a0a0f]/80 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-amber-500 border border-amber-500/20 uppercase tracking-widest">
                       {property.listingType || "Sale"}
                     </div>
-                    {property.isActive ? (
-                        <div className="bg-green-500/20 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-green-500 border border-green-500/20 uppercase tracking-widest flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            Active
+                    {/* Approval Status */}
+                    {property.status === "pending" && (
+                        <div className="bg-blue-500/20 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-blue-400 border border-blue-500/20 uppercase tracking-widest flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            รอตรวจสอบ
                         </div>
-                    ) : (
-                        <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-white/40 border border-white/10 uppercase tracking-widest">
-                            Inactive
+                    )}
+                    {property.status === "approved" && (
+                        <div className="bg-emerald-500/20 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-emerald-400 border border-emerald-500/20 uppercase tracking-widest flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3 h-3" />
+                            อนุมัติแล้ว
+                        </div>
+                    )}
+                    {property.status === "rejected" && (
+                        <div className="bg-red-500/20 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-red-400 border border-red-500/20 uppercase tracking-widest flex items-center gap-1.5">
+                            <XCircle className="w-3 h-3" />
+                            ไม่ผ่านการอนุมัติ
                         </div>
                     )}
                   </div>
@@ -148,9 +159,20 @@ export default function MyPropertiesPage() {
                     <MapPin className="w-3.5 h-3.5 text-amber-500/50" />
                     <span className="line-clamp-1">{[property.district, property.province].filter(Boolean).join(", ") || "ไม่ได้ระบุทำเล"}</span>
                   </div>
-                  <p className="text-sm text-white/30 line-clamp-2 mb-6 leading-relaxed flex-1">
+                  <p className="text-sm text-white/30 line-clamp-2 mb-4 leading-relaxed flex-1">
                     {property.description || "ไม่มีรายละเอียดเพิ่มเติมสำหรับประกาศนี้"}
                   </p>
+
+                  {/* Rejection Reason */}
+                  {property.status === "rejected" && property.reason && (
+                    <div className="mb-6 p-3 rounded-xl bg-red-500/5 border border-red-500/10 flex gap-3 items-start">
+                        <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">เหตุผลที่ไม่ผ่าน:</p>
+                            <p className="text-xs text-red-400/80 leading-relaxed">{property.reason}</p>
+                        </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-end justify-between pt-6 border-t border-white/5">
                     <div>

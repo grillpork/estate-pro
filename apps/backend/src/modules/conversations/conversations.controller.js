@@ -102,6 +102,18 @@ export const createConversation = async (req, res) => {
       )
 
     if (existing) {
+      // ถ้ามีห้องเดิมอยู่แล้ว แต่อยากเปลี่ยนเรื่องคุย (เปลี่ยนอสังหาฯ) ให้ทำการอัปเดต propertyId
+      if (propertyId != null && propertyId !== '') {
+        const [updated] = await db
+          .update(conversations)
+          .set({ 
+            propertyId: Number(propertyId),
+            updatedAt: new Date() 
+          })
+          .where(eq(conversations.id, existing.id))
+          .returning()
+        return res.json(updated)
+      }
       return res.json(existing)
     }
 
